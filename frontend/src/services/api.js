@@ -3,7 +3,10 @@ import axios from 'axios';
 
 // Create axios instance with base configuration
 const api = axios.create({
-    baseURL: 'http://localhost:5000/api', // Flask backend URL
+    baseURL: process.env.NODE_ENV === 'production' ?
+        '/api' // Relative path in production
+        :
+        'http://localhost:5000/api', // Flask backend URL in development
     headers: {
         'Content-Type': 'application/json',
     },
@@ -11,9 +14,12 @@ const api = axios.create({
 
 // Add request interceptor to include auth token
 api.interceptors.request.use((config) => {
-    const token = localStorage.getItem('authToken');
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+    // Skip auth for public endpoints
+    if (!config.url.includes('/public/')) {
+        const token = localStorage.getItem('authToken');
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
     }
     return config;
 });
@@ -46,11 +52,31 @@ export const dashboardAPI = {
     getActivities: () => api.get('/dashboard/activities'),
 };
 
-// Loan API
+// Loan API - Combined definition
 export const loanAPI = {
     createApplication: (applicationData) => api.post('/loans/applications', applicationData),
-    getApplications: (searchTerm = '') => api.get(`/loans/applications?search=${searchTerm}`),
+    getApplications: (searchParams = {}) => {
+        const params = new URLSearchParams();
+        Object.keys(searchParams).forEach(key => {
+            if (searchParams[key]) {
+                params.append(key, searchParams[key]);
+            }
+        });
+        return api.get(`/loans/applications?${params.toString()}`);
+    },
+    checkStatusWithPassword: (applicationId, password) =>
+        api.post('/public/loan-status', { application_id: applicationId, password }),
     updateApplicationStatus: (id, status) => api.put(`/loans/applications/${id}/status`, { status }),
+    // Public search method
+    searchApplicationsPublic: (searchParams = {}) => {
+        const params = new URLSearchParams();
+        Object.keys(searchParams).forEach(key => {
+            if (searchParams[key]) {
+                params.append(key, searchParams[key]);
+            }
+        });
+        return api.get(`/public/loans/applications?${params.toString()}`);
+    },
 };
 
 // Upload API

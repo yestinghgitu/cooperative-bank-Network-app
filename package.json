@@ -1,0 +1,17 @@
+{
+    "name": "cooperative-bank-app",
+    "version": "1.0.0",
+    "description": "Cooperative Bank Application",
+    "scripts": {
+        "dev": "concurrently \"npm run server\" \"npm run client\"",
+        "server": "cd backend && python app.py",
+        "client": "cd frontend && npm start",
+        "build": "cd frontend && npm run build",
+        "install-server": "cd backend && pip install -r requirements.txt",
+        "install-client": "cd frontend && npm install",
+        "install-all": "npm run install-server && npm run install-client"
+    },
+    "devDependencies": {
+        "concurrently": "^7.6.0"
+    }
+}

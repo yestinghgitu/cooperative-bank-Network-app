@@ -36,6 +36,10 @@ const Register = ({ onBack, onSwitchToLogin }) => {
                 branch: formData.branch,
                 role: formData.role
             });
+            if (response.data?.message) {
+    setSuccess(response.data.message);
+}
+            
             
             setSuccess('Account created successfully! You can now login.');
             setFormData({
@@ -200,7 +204,7 @@ const Register = ({ onBack, onSwitchToLogin }) => {
                                 fontSize: '16px'
                             }}
                         >
-                            <option value="user">User</option>
+                            <option value="user">Co-founder</option>
                             <option value="officer">Officer</option>
                             <option value="manager">Manager</option>
                         </select>

@@ -21,8 +21,8 @@ const AuthHeader = ({ setShowLogin, setShowSignup }) => {
   );
 };
 
-// Your existing Login component remains unchanged
-const Login = ({ onLogin, onSwitchRegister, onPublicSearch }) => {
+// Your updated Login component with status check functionality
+const Login = ({ onLogin, onSwitchRegister, onPublicSearch, onStatusCheck }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -153,43 +153,55 @@ const Login = ({ onLogin, onSwitchRegister, onPublicSearch }) => {
           textAlign: 'center'
         }}>
           <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>
-            <strong>Demo Credentials:</strong><br />
-            Username: <code>3921</code><br />
-            Password: <code>3921</code>
+            <strong>Login Bankers Credentials:</strong><br />
+            
           </p>
-          <div style={{ marginTop: '15px' }}>
-              <button 
-                  onClick={onSwitchRegister}
-                  style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#007bff',
-                      cursor: 'pointer',
-                      textDecoration: 'underline',
-                      fontSize: '14px',
-                      marginRight: '15px'
-                            }}
-                        >
-                          Create New Account
-                        </button>
+          
+          <div style={{ marginTop: '15px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <button 
+              onClick={onSwitchRegister}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#007bff',
+                cursor: 'pointer',
+                textDecoration: 'underline',
+                fontSize: '18px'
+              }}
+            >
+              Create New Account
+            </button>
 
+            <button 
+              onClick={onPublicSearch}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#28a745',
+                cursor: 'pointer',
+                textDecoration: 'underline',
+                fontSize: '14px'
+              }}
+            >
+      
+            </button>
 
-          <button 
-            onClick={onPublicSearch}
-            style={{
-              background: 'none',
-                                border: 'none',
-                                color: '#28a745',
-                                cursor: 'pointer',
-                                textDecoration: 'underline',
-                                fontSize: '14px'
-            }}
-          >
-            Check Loan Application Status
-          </button>
+            <button 
+              onClick={onStatusCheck}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#fd7e14',
+                cursor: 'pointer',
+                textDecoration: 'underline',
+                fontSize: '14px'
+              }}
+            >
+              
+            </button>
+          </div>
         </div>
       </div>
-    </div>
     </div>
   );
 };

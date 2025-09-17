@@ -16,7 +16,9 @@ const CreateLoan = ({ onBack }) => {
     pincode: '',
     loan_type: 'Personal',
     loan_amount: '',
-    photo_url: ''
+    photo_url: '',
+    password: '',
+    confirmPassword: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -59,6 +61,13 @@ const CreateLoan = ({ onBack }) => {
     setIsSubmitting(true);
     setMessage('');
 
+    // Validate passwords match
+    if (formData.password && formData.password !== formData.confirmPassword) {
+      setMessage('Passwords do not match');
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
       // Upload photo first if selected
       let photoUrl = formData.photo_url;
@@ -86,6 +95,9 @@ const CreateLoan = ({ onBack }) => {
         photo_url: photoUrl
       };
       
+      // Remove confirmPassword from the data sent to backend
+      delete dataToSend.confirmPassword;
+      
       const response = await loanAPI.createApplication(dataToSend);
       setMessage(`Loan application submitted successfully! Application ID: ${response.data.application_id}`);
       
@@ -104,7 +116,9 @@ const CreateLoan = ({ onBack }) => {
         pincode: '',
         loan_type: 'Personal',
         loan_amount: '',
-        photo_url: ''
+        photo_url: '',
+        password: '',
+        confirmPassword: ''
       });
       setSelectedFile(null);
     } catch (error) {
@@ -294,7 +308,7 @@ const CreateLoan = ({ onBack }) => {
           )}
         </div>
         
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '20px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '15px' }}>
           <div>
             <label style={{ display: 'block', marginBottom: '5px', fontWeight: '500' }}>Loan Type *</label>
             <select
@@ -323,6 +337,8 @@ const CreateLoan = ({ onBack }) => {
             />
           </div>
         </div>
+
+        
         
         <button 
           type="submit" 

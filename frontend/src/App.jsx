@@ -6,7 +6,8 @@ import Dashboard from './components/Dashboard';
 import CreateLoan from './components/CreateLoan';
 import ViewApplications from './components/ViewApplications';
 import Services from './components/Services';
-import LoanSearchPublic from './components/LoanSearchPublic';
+import LoanSearchPrivate from './components/LoanSearchPrivate';
+import LoanStatusCheck from './components/LoanStatusCheck';
 import NavBar from './components/NavBar';
 import { authAPI } from './services/api';
 
@@ -80,7 +81,8 @@ function App() {
       {isAuthenticated && (
         <NavBar 
           userName={user?.full_name || user?.username || 'User'} 
-          onLogout={handleLogout} 
+          onLogout={handleLogout}
+          onNavigate={handleNavigation}
         />
       )}
 
@@ -89,7 +91,8 @@ function App() {
           <LoginPage 
             onLogin={handleLogin}
             onSwitchRegister={() => setCurrentView('register')}
-            onPublicSearch={() => setCurrentView('public-search')}
+            onPublicSearch={() => setCurrentView('status-check')}
+            onStatusCheck={() => setCurrentView('status-check')}
           />
         )}
 
@@ -100,7 +103,7 @@ function App() {
           />
         )}
 
-        {!isAuthenticated && currentView === 'public-search' && (
+        {!isAuthenticated && currentView === 'status-check' && (
           <div>
             <button 
               onClick={() => setCurrentView('login')}
@@ -116,7 +119,11 @@ function App() {
             >
               ← Back to Login
             </button>
-            <LoanSearchPublic />
+            <LoanStatusCheck 
+              isAuthenticated={isAuthenticated}
+              onNavigateToLogin={() => setCurrentView('login')}
+              onNavigateToRegister={() => setCurrentView('register')}
+            />
           </div>
         )}
 
@@ -134,6 +141,19 @@ function App() {
 
         {isAuthenticated && currentView === 'services' && (
           <Services onBack={() => setCurrentView('dashboard')} />
+        )}
+
+        {isAuthenticated && currentView === 'private-search' && (
+          <LoanSearchPrivate onBack={() => setCurrentView('dashboard')} />
+        )}
+
+        {/* Add this section for authenticated users to access LoanStatusCheck */}
+        {isAuthenticated && currentView === 'status-check' && (
+          <LoanStatusCheck 
+            isAuthenticated={isAuthenticated}
+            onNavigateToLogin={() => setCurrentView('login')}
+            onNavigateToRegister={() => setCurrentView('register')}
+          />
         )}
       </main>
     </div>
