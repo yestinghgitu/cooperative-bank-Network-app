@@ -6,8 +6,8 @@ import Dashboard from './components/Dashboard';
 import CreateLoan from './components/CreateLoan';
 import ViewApplications from './components/ViewApplications';
 import Services from './components/Services';
-import LoanSearchPrivate from './components/LoanSearchPrivate';
-import LoanStatusCheck from './components/LoanStatusCheck';
+import LoanSearch from './components/LoanSearch'; // For authenticated users
+import LoanStatusCheck from './components/LoanStatusCheck'; // For public access
 import NavBar from './components/NavBar';
 import { authAPI } from './services/api';
 
@@ -83,6 +83,7 @@ function App() {
           userName={user?.full_name || user?.username || 'User'} 
           onLogout={handleLogout}
           onNavigate={handleNavigation}
+          currentView={currentView}
         />
       )}
 
@@ -144,7 +145,7 @@ function App() {
         )}
 
         {isAuthenticated && currentView === 'private-search' && (
-          <LoanSearchPrivate onBack={() => setCurrentView('dashboard')} />
+          <LoanSearch onBack={() => setCurrentView('dashboard')} />
         )}
 
         {/* Add this section for authenticated users to access LoanStatusCheck */}
@@ -154,6 +155,11 @@ function App() {
             onNavigateToLogin={() => setCurrentView('login')}
             onNavigateToRegister={() => setCurrentView('register')}
           />
+        )}
+
+        {/* Add this section for authenticated users to access LoanSearch */}
+        {isAuthenticated && currentView === 'loan-search' && (
+          <LoanSearch onBack={() => setCurrentView('dashboard')} />
         )}
       </main>
     </div>

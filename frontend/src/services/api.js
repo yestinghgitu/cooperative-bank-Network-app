@@ -52,31 +52,37 @@ export const dashboardAPI = {
     getActivities: () => api.get('/dashboard/activities'),
 };
 
-// Loan API - Combined definition
+// Loan API - Updated with field mapping
 export const loanAPI = {
     createApplication: (applicationData) => api.post('/loans/applications', applicationData),
-    getApplications: (searchParams = {}) => {
-        const params = new URLSearchParams();
-        Object.keys(searchParams).forEach(key => {
-            if (searchParams[key]) {
-                params.append(key, searchParams[key]);
-            }
-        });
-        return api.get(`/loans/applications?${params.toString()}`);
+
+    // Public search method (for customers to check status)
+    searchApplicationsPublic: (searchParams = {}) => {
+        // Map frontend field names to backend field names
+        const mappedParams = {};
+        if (searchParams.aadharNumber) mappedParams.aadharNumber = searchParams.aadharNumber;
+        if (searchParams.mobileNumber) mappedParams.mobileNumber = searchParams.mobileNumber;
+        if (searchParams.firstName) mappedParams.first_name = searchParams.firstName;
+        if (searchParams.lastName) mappedParams.last_name = searchParams.lastName;
+
+        return api.get('/public/loans/applications', { params: mappedParams });
     },
+
+    // Private search method (for authenticated users with detailed info)
+    searchApplicationsPrivate: (searchParams = {}) => {
+        // Map frontend field names to backend field names
+        const mappedParams = {};
+        if (searchParams.aadharNumber) mappedParams.aadharNumber = searchParams.aadharNumber;
+        if (searchParams.mobileNumber) mappedParams.mobileNumber = searchParams.mobileNumber;
+        if (searchParams.firstName) mappedParams.first_name = searchParams.firstName;
+        if (searchParams.lastName) mappedParams.last_name = searchParams.lastName;
+
+        return api.get('/private/loans/applications', { params: mappedParams });
+    },
+
     checkStatusWithPassword: (applicationId, password) =>
         api.post('/public/loan-status', { application_id: applicationId, password }),
     updateApplicationStatus: (id, status) => api.put(`/loans/applications/${id}/status`, { status }),
-    // Public search method
-    searchApplicationsPublic: (searchParams = {}) => {
-        const params = new URLSearchParams();
-        Object.keys(searchParams).forEach(key => {
-            if (searchParams[key]) {
-                params.append(key, searchParams[key]);
-            }
-        });
-        return api.get(`/public/loans/applications?${params.toString()}`);
-    },
 };
 
 // Upload API

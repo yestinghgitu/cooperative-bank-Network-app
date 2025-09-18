@@ -4,7 +4,6 @@ import { dashboardAPI } from '../services/api';
 const Dashboard = ({ onNavigate }) => {
   const [stats, setStats] = useState({
     total_loans: 0,
-    total_deposits: 45.2,
     pending_applications: 0
   });
   const [loading, setLoading] = useState(true);
@@ -160,7 +159,7 @@ const Dashboard = ({ onNavigate }) => {
           </div>
         </div>
 
-        {/* Total Deposits Card */}
+        {/* Our Services Card */}
         <div style={{ 
           background: 'white', 
           padding: '25px', 
@@ -176,15 +175,15 @@ const Dashboard = ({ onNavigate }) => {
                 fontSize: '16px',
                 fontWeight: '600'
               }}>
-                Total Deposits
+                Our Services
               </h3>
               <p style={{ 
-                fontSize: '28px', 
-                fontWeight: 'bold', 
+                fontSize: '14px', 
                 margin: '0 0 5px 0',
-                color: '#1cc88a'
+                color: '#858796',
+                lineHeight: '1.4'
               }}>
-                ₹{stats.total_deposits}Cr
+                Letter pads • Banking Software • Auditing • Legal services
               </p>
               <p style={{ 
                 color: '#1cc88a', 
@@ -192,7 +191,8 @@ const Dashboard = ({ onNavigate }) => {
                 fontSize: '14px',
                 fontWeight: '500'
               }}>
-                ↑ +15% from last month
+                Contact = 7892611670 
+                Explore our comprehensive offerings
               </p>
             </div>
             <div style={{ 
@@ -207,7 +207,7 @@ const Dashboard = ({ onNavigate }) => {
               width: '50px',
               height: '50px'
             }}>
-              💳
+              🏦
             </div>
           </div>
         </div>
@@ -480,7 +480,7 @@ const Dashboard = ({ onNavigate }) => {
               borderRadius: '8px', 
               boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
               cursor: 'pointer',
-              border: '1px solid #e3e6f0',
+              border: '1px solid ',
               transition: 'all 0.3s ease'
             }}
             onClick={() => onNavigate('create-loan')}

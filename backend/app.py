@@ -290,6 +290,61 @@ def get_public_loan_applications():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+# Private loan application search endpoint (with authentication)
+@app.route('/api/private/loans/applications', methods=['GET'])
+@jwt_required()
+def get_private_loan_applications():
+    try:
+        # Get search parameters
+        aadhar_number = request.args.get('aadharNumber', '')
+        mobile_number = request.args.get('mobileNumber', '')
+        first_name = request.args.get('firstName', '')
+        last_name = request.args.get('lastName', '')
+        
+        # Build query
+        query = LoanApplication.query
+        
+        if aadhar_number:
+            query = query.filter(LoanApplication.aadhar_number == aadhar_number)
+        if mobile_number:
+            query = query.filter(LoanApplication.mobile_number == mobile_number)
+        if first_name:
+            query = query.filter(LoanApplication.first_name.ilike(f'%{first_name}%'))
+        if last_name:
+            query = query.filter(LoanApplication.last_name.ilike(f'%{last_name}%'))
+        
+        applications = query.all()
+        
+        result = []
+        for app in applications:
+            result.append({
+                'id': app.id,
+                'application_id': app.application_id,
+                'first_name': app.first_name,
+                'last_name': app.last_name,
+                'mother_name': app.mother_name,
+                'father_name': app.father_name,
+                'gender': app.gender,
+                'date_of_birth': app.date_of_birth.isoformat() if app.date_of_birth else None,
+                'aadhar_number': app.aadhar_number,
+                'pan_number': app.pan_number,
+                'mobile_number': app.mobile_number,
+                'email': app.email,
+                'address': app.address,
+                'city': app.city,
+                'state': app.state,
+                'pincode': app.pincode,
+                'photo_url': app.photo_url,
+                'loan_type': app.loan_type,
+                'loan_amount': app.loan_amount,
+                'status': app.status,
+                'created_at': app.created_at.isoformat() if app.created_at else None
+            })
+        
+        return jsonify({'applications': result}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 # Photo upload endpoint
 @app.route('/api/upload/photo', methods=['POST'])
 @jwt_required()
@@ -388,6 +443,75 @@ def reset_database():
         db.session.commit()
         
         return jsonify({'message': 'Database reset successfully'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/debug/add-sample-loans', methods=['POST'])
+def add_sample_loans():
+    """Add sample loan applications for testing"""
+    try:
+        sample_applications = [
+            {
+                'first_name': 'Rahul',
+                'last_name': 'Sharma',
+                'aadhar_number': '123456789012',
+                'mobile_number': '9876543210',
+                'loan_type': 'Personal',
+                'loan_amount': 50000,
+                'status': 'Pending'
+            },
+            {
+                'first_name': 'Priya',
+                'last_name': 'Patel',
+                'aadhar_number': '987654321098',
+                'mobile_number': '9123456780',
+                'loan_type': 'Home',
+                'loan_amount': 2500000,
+                'status': 'Approved'
+            },
+            {
+                'first_name': 'Amit',
+                'last_name': 'Verma',
+                'aadhar_number': '456789012345',
+                'mobile_number': '9988776655',
+                'loan_type': 'Vehicle',
+                'loan_amount': 800000,
+                'status': 'Rejected'
+            }
+        ]
+        
+        for app_data in sample_applications:
+            # Check if application already exists
+            existing = LoanApplication.query.filter_by(
+                aadhar_number=app_data['aadhar_number']
+            ).first()
+            
+            if not existing:
+                # Generate application ID
+                last_app = LoanApplication.query.order_by(LoanApplication.id.desc()).first()
+                new_id = 1 if not last_app else last_app.id + 1
+                application_id = f"LOAN{new_id:04d}"
+                
+                application = LoanApplication(
+                    application_id=application_id,
+                    first_name=app_data['first_name'],
+                    last_name=app_data['last_name'],
+                    aadhar_number=app_data['aadhar_number'],
+                    mobile_number=app_data['mobile_number'],
+                    loan_type=app_data['loan_type'],
+                    loan_amount=app_data['loan_amount'],
+                    status=app_data['status'],
+                    # Add required fields with dummy data
+                    gender='Male',
+                    date_of_birth=datetime(1990, 1, 1).date()
+                )
+                
+                db.session.add(application)
+        
+        db.session.commit()
+        return jsonify({'message': 'Sample loans added successfully'}), 200
+        
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
