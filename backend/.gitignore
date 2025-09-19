@@ -1,6 +1,8 @@
+node_modules/
 venv/
 instance/
 uploads/
 .env
 __pycache__/
 *.pyc
+.env
