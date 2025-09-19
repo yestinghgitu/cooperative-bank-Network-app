@@ -191,7 +191,7 @@ const Dashboard = ({ onNavigate }) => {
                 fontSize: '14px',
                 fontWeight: '500'
               }}>
-                Contact = 7892611670 
+
                 Explore our comprehensive offerings
               </p>
             </div>
