@@ -4,7 +4,7 @@ services:
     runtime: python
     plan: free
     buildCommand: "pip install -r backend/requirements.txt"
-    startCommand: "gunicorn app:app"
+    startCommand: "npx serve -s frontend/build"
     branch: main
     autoDeploy: true
     rootDir: backend
