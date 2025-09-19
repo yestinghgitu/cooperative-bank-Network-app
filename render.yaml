@@ -4,7 +4,7 @@ services:
     runtime: python
     plan: free
     buildCommand: "pip install -r backend/requirements.txt"
-    startCommand: "npm run build"
+    startCommand: "gunicorn app:app"
     branch: main
     autoDeploy: true
     rootDir: backend
@@ -21,7 +21,7 @@ services:
     runtime: node
     plan: free
     buildCommand: "npm install && npm run build"
-    startCommand: "npm run preview"
+    startCommand: "gunicorn app:app"
     branch: main
     autoDeploy: true
     rootDir: frontend
