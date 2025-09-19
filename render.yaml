@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: cooperative-bank-backend
+    runtime: python
+    plan: free
+    buildCommand: "pip install -r backend/requirements.txt"
+    startCommand: "npm run build"
+    branch: main
+    autoDeploy: true
+    rootDir: backend
+    envVars:
+      - key: SECRET_KEY
+        value: "your-secret-key"
+      - key: sqlite:///C:/Users/kk744/vaibhavanidhi-backend/instance/database.db
+        fromDatabase:
+          name: cooperative-bank-db
+          property: connectionString
+
+  - type: web
+    name: cooperative-bank-frontend
+    runtime: node
+    plan: free
+    buildCommand: "npm install && npm run build"
+    startCommand: "npm run preview"
+    branch: main
+    autoDeploy: true
+    rootDir: frontend
+
+databases:
+  - name: cooperative-bank-db
+    plan: free
