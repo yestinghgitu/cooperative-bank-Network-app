@@ -1,11 +1,11 @@
 {
     "projects": [
         {
-            "src": "frontend/package.json",
+            "src": "frontend/npm start",
             "use": "@vercel/next"
         },
         {
-            "src": "backend/app.py",
+            "src": "backend/main.py",
             "use": "@vercel/python"
         }
     ],
