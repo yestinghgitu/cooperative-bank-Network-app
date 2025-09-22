@@ -1,14 +1,22 @@
 {
-    "builds": [
+    "projects": [
         {
-            "src": "npm start",
+            "src": "frontend/package.json",
+            "use": "@vercel/next"
+        },
+        {
+            "src": "backend/app.py",
             "use": "@vercel/python"
         }
     ],
     "routes": [
         {
+            "src": "/api/(.*)",
+            "dest": "backend/app.py"
+        },
+        {
             "src": "/(.*)",
-            "dest": "app.py"
+            "dest": "frontend/$1"
         }
     ]
 }
