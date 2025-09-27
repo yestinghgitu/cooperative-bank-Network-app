@@ -14,7 +14,11 @@ app = Flask(__name__, static_folder='../frontend/build', static_url_path='')
 CORS(app, origins=["http://localhost:3000", "http://127.0.0.1:3000"])
 
 # Configuration
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///instance/database.db')
+#app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///instance/database.db')
+basedir = os.path.abspath(os.path.dirname(__file__))
+db_path = os.path.join(basedir, "instance", "database.db")
+app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{db_path}"
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET', 'vaibhavanidhi-secret-key-2024')
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)

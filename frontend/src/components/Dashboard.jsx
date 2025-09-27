@@ -317,12 +317,12 @@ const Dashboard = ({ onNavigate }) => {
           
           <button 
             onClick={() => onNavigate('view-applications')}
-            style={{ 
-              padding: '15px 20px', 
-              background: 'linear-gradient(135deg, #1cc88a, #17a673)',
-              color: 'white', 
-              border: 'none', 
-              borderRadius: '8px', 
+	    style={{
+              padding: '15px 20px',
+              background: 'linear-gradient(135deg, #4e73df, #2e59d9)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
               cursor: 'pointer',
               fontSize: '16px',
               fontWeight: '600',
@@ -345,12 +345,12 @@ const Dashboard = ({ onNavigate }) => {
           
           <button 
             onClick={() => onNavigate('services')}
-            style={{ 
-              padding: '15px 20px', 
-              background: 'linear-gradient(135deg, #36b9cc, #2c9faf)',
-              color: 'white', 
-              border: 'none', 
-              borderRadius: '8px', 
+	    style={{
+              padding: '15px 20px',
+              background: 'linear-gradient(135deg, #4e73df, #2e59d9)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
               cursor: 'pointer',
               fontSize: '16px',
               fontWeight: '600',
