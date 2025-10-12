@@ -311,7 +311,7 @@ const Dashboard = ({ onNavigate }) => {
               e.target.style.transform = 'translateY(0)';
             }}
           >
-            <span>📝</span>
+            <span></span>
             Create Loan
           </button>
           
@@ -463,7 +463,7 @@ const Dashboard = ({ onNavigate }) => {
                 borderRadius: '8px',
                 padding: '10px'
               }}>
-                📝
+                
               </div>
               <div>
                 <h4 style={{ margin: '0 0 5px 0', color: '#1cc88a' }}>Traditional Application</h4>

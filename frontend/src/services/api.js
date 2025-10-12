@@ -68,6 +68,10 @@ export const loanAPI = {
         return api.get('/public/loans/applications', { params: mappedParams });
     },
 
+     searchApplicationsWithFilters: (searchParams) => {
+        return api.get('/loans/applications', { params: searchParams });
+    },
+
     // Private search method (for authenticated users with detailed info)
     searchApplicationsPrivate: (searchParams = {}) => {
         // Map frontend field names to backend field names
@@ -79,7 +83,13 @@ export const loanAPI = {
 
         return api.get('/private/loans/applications', { params: mappedParams });
     },
+   createApplication: (applicationData) => api.post('/loans/applications', applicationData),
 
+   deleteApplication: (id) => api.delete(`/loans/applications/${id}`),
+
+   searchApplicationsWithFilters: (searchParams) => {
+    return api.get('/loans/applications', { params: searchParams });
+    },
     checkStatusWithPassword: (applicationId, password) =>
         api.post('/public/loan-status', { application_id: applicationId, password }),
     updateApplicationStatus: (id, status) => api.put(`/loans/applications/${id}/status`, { status }),
@@ -105,4 +115,23 @@ export const debugAPI = {
     initSampleData: () => api.post('/init-data'),
 };
 
+export const getLoanApplications = async (page, limit, search, sort) => {
+  try {
+    const response = await api.get('/loans/applications', {
+      params: {
+        page,
+        limit,
+        search,
+        sort,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching loan applications:', error);
+    throw error;
+  }
+};
+
+
+// Keep this line at the bottom
 export default api;

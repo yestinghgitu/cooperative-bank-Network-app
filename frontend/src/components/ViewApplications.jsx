@@ -1,402 +1,507 @@
-import React, { useState, useEffect } from 'react';
-import { loanAPI } from '../services/api';
+import React, { useEffect, useMemo, useState, useCallback } from "react";
+import {
+  Box,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TableSortLabel,
+  Paper,
+  Toolbar,
+  Typography,
+  TextField,
+  Checkbox,
+  IconButton,
+  FormControlLabel,
+  Button,
+  Menu,
+  MenuItem,
+  CircularProgress,
+  Card,
+  CardContent,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Grid,
+  FormControl,
+  InputLabel,
+  Select,
+  Snackbar,
+  Alert,
+} from "@mui/material";
+import { SlidersHorizontal, FileDown, Edit3, Trash2 } from "lucide-react";
+import {
+  useReactTable,
+  getCoreRowModel,
+  getSortedRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  flexRender,
+} from "@tanstack/react-table";
+import * as XLSX from "xlsx";
+import { getLoanApplications } from "../services/api";
 
-const ViewApplications = ({ onBack }) => {
+const ALL_COLUMNS = [
+  { accessorKey: "society_name", header: "Society" },
+  { accessorKey: "loan_type", header: "Loan Type" },
+  { accessorKey: "loan_amount", header: "Amount" },
+  { accessorKey: "status", header: "Lead Status" },
+  { accessorKey: "voter_id", header: "Borrower Voter ID" },
+  { accessorKey: "remarks", header: "Remarks" },
+  { accessorKey: "created_at", header: "Created At" },
+  { accessorKey: "created_by", header: "Created By" },
+  { accessorKey: "modified_at", header: "Modified At" },
+  { accessorKey: "modified_by", header: "Modified By" },
+];
+
+const ViewApplications = () => {
   const [applications, setApplications] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [duplicatingId, setDuplicatingId] = useState(null);
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'ascending' });
+  const [searchTerm, setSearchTerm] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [columnVisibility, setColumnVisibility] = useState(
+    Object.fromEntries(ALL_COLUMNS.map((c) => [c.accessorKey, true]))
+  );
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [sorting, setSorting] = useState([]);
+  const [page, setPage] = useState(0);
+  const [pageSize] = useState(10);
+
+  // Edit modal
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editData, setEditData] = useState({});
+  const [selectedApp, setSelectedApp] = useState(null);
+
+  // Toast notifications
+  const [toast, setToast] = useState({ open: false, message: "", severity: "info" });
+
+  const showToast = (message, severity = "info") =>
+    setToast({ open: true, message, severity });
+
+  const handleCloseToast = () => setToast({ ...toast, open: false });
+
+  /**  Fetch loan applications */
+  const fetchApplications = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await getLoanApplications(page + 1, pageSize, searchTerm, "latest");
+      setApplications(response.applications || []);
+    } catch (error) {
+      console.error(" Error fetching applications:", error);
+      showToast("Failed to fetch applications", "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [page, pageSize, searchTerm]);
 
   useEffect(() => {
-    const fetchApplications = async () => {
-      try {
-        setLoading(true);
-        setError('');
-        const response = await loanAPI.getApplications(searchTerm);
-        setApplications(response.data.applications || response.data || []);
-      } catch (err) {
-        setError(err.response?.data?.message || 'Failed to fetch applications');
-        console.error('Error fetching applications:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
+    const timeout = setTimeout(fetchApplications, 400);
+    return () => clearTimeout(timeout);
+  }, [fetchApplications]);
 
-    fetchApplications();
-  }, [searchTerm]);
+  /**  Export to Excel */
+  const exportToExcel = () => {
+    if (!applications.length) return showToast("No data to export", "warning");
+    const worksheet = XLSX.utils.json_to_sheet(applications);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Applications");
+    XLSX.writeFile(workbook, "LoanApplications.xlsx");
+    showToast("Exported to Excel successfully", "success");
+  };
 
-  const handleDuplicate = async (application) => {
+  /** 🧠 Table columns configuration */
+  const columns = useMemo(
+    () => [
+      {
+        header: "Actions",
+        id: "actions",
+        cell: ({ row }) => (
+          <Box sx={{ display: "flex", gap: 1 }}>
+            <IconButton
+              color="primary"
+              size="small"
+              onClick={() => handleEditOpen(row.original)}
+            >
+              <Edit3 size={18} />
+            </IconButton>
+            <IconButton
+              color="error"
+              size="small"
+              onClick={() => handleDelete(row.original)}
+            >
+              <Trash2 size={18} />
+            </IconButton>
+          </Box>
+        ),
+      },
+      { accessorKey: "first_name", header: "Applicant Name" },
+      { accessorKey: "aadhar_number", header: "Aadhar Number" },
+      ...ALL_COLUMNS,
+    ],
+    []
+  );
+
+  /** ⚙️ React Table setup */
+  const table = useReactTable({
+    data: applications,
+    columns,
+    state: {
+      sorting,
+      columnVisibility,
+      globalFilter: searchTerm,
+      pagination: { pageIndex: page, pageSize },
+    },
+    onSortingChange: setSorting,
+    onGlobalFilterChange: setSearchTerm,
+    onPaginationChange: (updater) => {
+      const next = typeof updater === "function" ? updater({ pageIndex: page }) : updater;
+      setPage(next.pageIndex);
+    },
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+  });
+
+  /** ⚙️ Column visibility handlers */
+  const handleMenuOpen = (e) => setAnchorEl(e.currentTarget);
+  const handleMenuClose = () => setAnchorEl(null);
+  const toggleColumn = (key) =>
+    setColumnVisibility((prev) => ({ ...prev, [key]: !prev[key] }));
+
+  /** 🗓️ Date formatter */
+  const formatDate = (date) =>
+    date
+      ? new Date(date).toLocaleDateString("en-IN", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        })
+      : "-";
+
+  /** ✏️ Edit modal handlers */
+  const handleEditOpen = (app) => {
+    setSelectedApp(app);
+    setEditData({
+      aadhar_number: app.aadhar_number,
+      first_name: app.first_name,
+      last_name: app.last_name,
+      loan_amount: app.loan_amount,
+      status: app.status,
+      remarks: app.remarks,
+    });
+    setEditModalOpen(true);
+  };
+
+  const handleEditChange = (key, value) =>
+    setEditData((prev) => ({ ...prev, [key]: value }));
+
+  const handleEditSave = async () => {
     try {
-      setDuplicatingId(application.id);
-      
-      // Create a copy of the application with a new ID and reset status
-      const duplicatedApp = {
-        ...application,
-        id: null, // Let the backend generate a new ID
-        applicationDate: new Date().toISOString(),
-        status: 'pending',
-        referenceNumber: `DUP-${application.referenceNumber || Date.now()}`
+      setLoading(true);
+      const payload = {
+        aadhar_number: editData.aadhar_number,
+        first_name: editData.first_name,
+        last_name: editData.last_name,
+        loan_amount: parseFloat(editData.loan_amount) || 0,
+        status: editData.status,
+        remarks: editData.remarks,
       };
-      
-      await loanAPI.createApplication(duplicatedApp);
-      
-      // Refresh the list
-      const response = await loanAPI.getApplications(searchTerm);
-      setApplications(response.data.applications || response.data || []);
-      
-      setError('');
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to duplicate application');
+
+      const response = await fetch(
+        `http://localhost:5000/api/loans/applications/${selectedApp.id}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Update failed");
+
+      showToast("Application updated successfully!", "success");
+      setEditModalOpen(false);
+      await fetchApplications();
+    } catch (error) {
+      console.error(" Error updating application:", error);
+      showToast("Failed to update application", "error");
     } finally {
-      setDuplicatingId(null);
+      setLoading(false);
     }
   };
 
-  const handleSearch = (e) => {
-    setSearchTerm(e.target.value);
-  };
+  /** 🗑️ Delete handler */
+  const handleDelete = async (app) => {
+    if (!window.confirm(`Are you sure you want to delete application for ${app.first_name}?`))
+      return;
 
-  const handleSort = (key) => {
-    let direction = 'ascending';
-    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
-      direction = 'descending';
-    }
-    setSortConfig({ key, direction });
-  };
+    try {
+      setLoading(true);
+      const response = await fetch(
+        `http://localhost:5000/api/loans/applications/${app.id}`,
+        { method: "DELETE" }
+      );
 
-  const sortedApplications = React.useMemo(() => {
-    let sortableItems = [...applications];
-    if (sortConfig.key !== null) {
-      sortableItems.sort((a, b) => {
-        if (a[sortConfig.key] < b[sortConfig.key]) {
-          return sortConfig.direction === 'ascending' ? -1 : 1;
-        }
-        if (a[sortConfig.key] > b[sortConfig.key]) {
-          return sortConfig.direction === 'ascending' ? 1 : -1;
-        }
-        return 0;
-      });
-    }
-    return sortableItems;
-  }, [applications, sortConfig]);
-
-  const getStatusBadgeClass = (status) => {
-    switch (status) {
-      case 'approved': return 'status-approved';
-      case 'rejected': return 'status-rejected';
-      case 'pending': return 'status-pending';
-      default: return 'status-unknown';
+      if (!response.ok) throw new Error("Delete failed");
+      showToast("Application deleted successfully", "success");
+      await fetchApplications();
+    } catch (error) {
+      console.error(" Error deleting application:", error);
+      showToast("Failed to delete application", "error");
+    } finally {
+      setLoading(false);
     }
   };
-
-  // CSS styles
-  const styles = {
-    viewApplications: {
-      padding: '20px',
-      fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-      maxWidth: '1200px',
-      margin: '0 auto'
-    },
-    applicationsHeader: {
-      display: 'flex',
-      alignItems: 'center',
-      marginBottom: '20px',
-      borderBottom: '1px solid #e1e1e1',
-      paddingBottom: '15px'
-    },
-    backButton: {
-      backgroundColor: '#6c757d',
-      color: 'white',
-      border: 'none',
-      padding: '8px 15px',
-      borderRadius: '4px',
-      cursor: 'pointer',
-      marginRight: '15px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '5px',
-      transition: 'background-color 0.2s',
-      '&:hover': {
-        backgroundColor: '#5a6268'
-      }
-    },
-    heading: {
-      color: '#343a40',
-      margin: 0
-    },
-    errorMessage: {
-      backgroundColor: '#f8d7da',
-      color: '#721c24',
-      padding: '10px',
-      borderRadius: '4px',
-      marginBottom: '20px',
-      border: '1px solid #f5c6cb'
-    },
-    controlsRow: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: '20px',
-      flexWrap: 'wrap',
-      gap: '15px'
-    },
-    searchContainer: {
-      position: 'relative',
-      display: 'flex',
-      alignItems: 'center'
-    },
-    searchIcon: {
-      position: 'absolute',
-      left: '10px',
-      color: '#6c757d'
-    },
-    searchInput: {
-      padding: '8px 8px 8px 35px',
-      borderRadius: '4px',
-      border: '1px solid #ced4da',
-      width: '250px',
-      fontSize: '14px',
-      '&:focus': {
-        outline: 'none',
-        borderColor: '#80bdff',
-        boxShadow: '0 0 0 0.2rem rgba(0,123,255,.25)'
-      }
-    },
-    resultsCount: {
-      color: '#6c757d',
-      fontSize: '14px'
-    },
-    tableContainer: {
-      overflowX: 'auto',
-      boxShadow: '0 0 10px rgba(0,0,0,0.05)',
-      borderRadius: '8px',
-      border: '1px solid #e1e1e1'
-    },
-    applicationsTable: {
-      width: '100%',
-      borderCollapse: 'collapse',
-      backgroundColor: 'white'
-    },
-    tableHeader: {
-      backgroundColor: '#f8f9fa',
-      '& th': {
-        padding: '12px 15px',
-        textAlign: 'left',
-        fontWeight: '600',
-        color: '#495057',
-        cursor: 'pointer',
-        userSelect: 'none',
-        borderBottom: '2px solid #e1e1e1',
-        '&:hover': {
-          backgroundColor: '#e9ecef'
-        }
-      }
-    },
-    tableRow: {
-      '&:nth-of-type(even)': {
-        backgroundColor: '#f8f9fa'
-      },
-      '&:hover': {
-        backgroundColor: '#e9ecef'
-      }
-    },
-    tableCell: {
-      padding: '12px 15px',
-      borderBottom: '1px solid #e1e1e1'
-    },
-    applicantName: {
-      fontWeight: '500',
-      color: '#343a40'
-    },
-    loanAmount: {
-      fontWeight: '500',
-      color: '#155724'
-    },
-    applicationDate: {
-      color: '#6c757d'
-    },
-    statusBadge: {
-      padding: '4px 8px',
-      borderRadius: '12px',
-      fontSize: '12px',
-      fontWeight: '600',
-      textTransform: 'capitalize',
-      display: 'inline-block'
-    },
-    statusApproved: {
-      backgroundColor: '#d4edda',
-      color: '#155724'
-    },
-    statusRejected: {
-      backgroundColor: '#f8d7da',
-      color: '#721c24'
-    },
-    statusPending: {
-      backgroundColor: '#fff3cd',
-      color: '#856404'
-    },
-    statusUnknown: {
-      backgroundColor: '#e2e3e5',
-      color: '#383d41'
-    },
-    referenceNumber: {
-      fontFamily: 'monospace',
-      color: '#6c757d'
-    },
-    duplicateButton: {
-      backgroundColor: '#17a2b8',
-      color: 'white',
-      border: 'none',
-      padding: '6px 12px',
-      borderRadius: '4px',
-      cursor: 'pointer',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '5px',
-      fontSize: '13px',
-      transition: 'background-color 0.2s',
-      '&:hover:not(:disabled)': {
-        backgroundColor: '#138496'
-      },
-      '&:disabled': {
-        opacity: 0.65,
-        cursor: 'not-allowed'
-      }
-    },
-    noData: {
-      textAlign: 'center',
-      padding: '30px',
-      color: '#6c757d',
-      fontStyle: 'italic'
-    },
-    loading: {
-      textAlign: 'center',
-      padding: '40px',
-      color: '#6c757d',
-      fontSize: '18px'
-    }
-  };
-
-  if (loading) {
-    return (
-      <div style={styles.viewApplications}>
-        <div style={styles.loading}>Loading applications...</div>
-      </div>
-    );
-  }
 
   return (
-    <div style={styles.viewApplications}>
-      <div style={styles.applicationsHeader}>
-        {onBack && (
-          <button style={styles.backButton} onClick={onBack}>
-            <i className="fas fa-arrow-left"></i> Back
-          </button>
-        )}
-        <h2 style={styles.heading}>Loan Applications</h2>
-      </div>
-      
-      {error && <div style={styles.errorMessage}>Error: {error}</div>}
-      
-      <div style={styles.controlsRow}>
-        <div style={styles.searchContainer}>
-          <i className="fas fa-search" style={styles.searchIcon}></i>
-          <input
-            type="text"
-            placeholder="Search applications..."
+    <Box sx={{ p: 3 }}>
+      <Typography variant="h5" fontWeight={600} mb={2}>
+        Loan Applications
+      </Typography>
+
+      {/* Toolbar */}
+      <Card sx={{ mb: 2, boxShadow: 2, borderRadius: 2, position: "sticky", top: 70, zIndex: 10 }}>
+        <Toolbar
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            backgroundColor: "#f9fafb",
+          }}
+        >
+          <TextField
+            size="small"
+            variant="outlined"
+            placeholder="Search applications"
             value={searchTerm}
-            onChange={handleSearch}
-            style={styles.searchInput}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            sx={{ width: 300, backgroundColor: "white" }}
           />
-        </div>
-        
-        <div style={styles.resultsCount}>
-          {applications.length} application{applications.length !== 1 ? 's' : ''} found
-        </div>
-      </div>
-      
-      <div style={styles.tableContainer}>
-        <table style={styles.applicationsTable}>
-          <thead>
-            <tr style={styles.tableHeader}>
-              <th onClick={() => handleSort('applicantName')} style={styles.tableCell}>
-                Applicant Name {sortConfig.key === 'applicantName' && (
-                  <i className={`fas fa-arrow-${sortConfig.direction === 'ascending' ? 'up' : 'down'}`}></i>
-                )}
-              </th>
-              <th onClick={() => handleSort('loanAmount')} style={styles.tableCell}>
-                Loan Amount {sortConfig.key === 'loanAmount' && (
-                  <i className={`fas fa-arrow-${sortConfig.direction === 'ascending' ? 'up' : 'down'}`}></i>
-                )}
-              </th>
-              <th onClick={() => handleSort('applicationDate')} style={styles.tableCell}>
-                Application Date {sortConfig.key === 'applicationDate' && (
-                  <i className={`fas fa-arrow-${sortConfig.direction === 'ascending' ? 'up' : 'down'}`}></i>
-                )}
-              </th>
-              <th onClick={() => handleSort('status')} style={styles.tableCell}>
-                Status {sortConfig.key === 'status' && (
-                  <i className={`fas fa-arrow-${sortConfig.direction === 'ascending' ? 'up' : 'down'}`}></i>
-                )}
-              </th>
-              <th style={styles.tableCell}>Reference Number</th>
-              <th style={styles.tableCell}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sortedApplications.length === 0 ? (
-              <tr>
-                <td colSpan="6" style={{...styles.tableCell, ...styles.noData}}>
-                  No applications found
-                </td>
-              </tr>
-            ) : (
-              sortedApplications.map((application) => (
-                <tr key={application.id} style={styles.tableRow}>
-                  <td style={{...styles.tableCell, ...styles.applicantName}}>
-                    {application.applicantName || 'Unknown Applicant'}
-                  </td>
-                  <td style={{...styles.tableCell, ...styles.loanAmount}}>
-                    ${application.loanAmount}
-                  </td>
-                  <td style={{...styles.tableCell, ...styles.applicationDate}}>
-                    {new Date(application.applicationDate).toLocaleDateString()}
-                  </td>
-                  <td style={styles.tableCell}>
-                    <span style={{
-                      ...styles.statusBadge,
-                      ...styles[getStatusBadgeClass(application.status)]
-                    }}>
-                      {application.status}
-                    </span>
-                  </td>
-                  <td style={{...styles.tableCell, ...styles.referenceNumber}}>
-                    {application.referenceNumber || 'N/A'}
-                  </td>
-                  <td style={styles.tableCell}>
-                    <button 
-                      style={styles.duplicateButton}
-                      onClick={() => handleDuplicate(application)}
-                      disabled={duplicatingId === application.id}
-                      title="Duplicate application"
-                    >
-                      {duplicatingId === application.id ? (
-                        <><i className="fas fa-spinner fa-spin"></i> Duplicating...</>
-                      ) : (
-                        <><i className="fas fa-copy"></i> Duplicate</>
-                      )}
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+          <Box>
+            <Button
+              variant="contained"
+              startIcon={<FileDown size={18} />}
+              onClick={exportToExcel}
+              sx={{ mr: 1 }}
+            >
+              Export Excel
+            </Button>
+            <IconButton onClick={handleMenuOpen}>
+              <SlidersHorizontal size={18} />
+            </IconButton>
+            <Menu anchorEl={anchorEl} open={!!anchorEl} onClose={handleMenuClose}>
+              {ALL_COLUMNS.map((col) => (
+                <MenuItem key={col.accessorKey}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={!!columnVisibility[col.accessorKey]}
+                        onChange={() => toggleColumn(col.accessorKey)}
+                      />
+                    }
+                    label={col.header}
+                  />
+                </MenuItem>
+              ))}
+            </Menu>
+          </Box>
+        </Toolbar>
+      </Card>
+
+      {/* Table */}
+      <Card sx={{ boxShadow: 3, borderRadius: 3 }}>
+        <CardContent sx={{ p: 0 }}>
+          {loading ? (
+            <Box sx={{ p: 4, textAlign: "center" }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <TableContainer component={Paper} sx={{ maxHeight: 600 }}>
+              <Table stickyHeader size="small">
+                <TableHead>
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <TableRow key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => (
+                        <TableCell
+                          key={header.id}
+                          sortDirection={
+                            header.column.getIsSorted()
+                              ? header.column.getIsSorted() === "desc"
+                                ? "desc"
+                                : "asc"
+                              : false
+                          }
+                          sx={{ fontWeight: "bold", backgroundColor: "#f3f4f6" }}
+                        >
+                          {header.isPlaceholder ? null : (
+                            <TableSortLabel
+                              active={!!header.column.getIsSorted()}
+                              direction={
+                                header.column.getIsSorted() === "desc" ? "desc" : "asc"
+                              }
+                              onClick={header.column.getToggleSortingHandler()}
+                            >
+                              {flexRender(header.column.columnDef.header, header.getContext())}
+                            </TableSortLabel>
+                          )}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableHead>
+
+                <TableBody>
+                  {table.getRowModel().rows.length ? (
+                    table.getRowModel().rows.map((row) => (
+                      <TableRow hover key={row.id}>
+                        {row.getVisibleCells().map((cell) => (
+                          <TableCell key={cell.id}>
+                            {cell.column.id.includes("created at") ||
+                            cell.column.id.includes("modified at")
+                              ? formatDate(cell.getValue())
+                              : flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={columns.length} align="center">
+                        No applications found.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Pagination */}
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mt: 3,
+        }}
+      >
+        <Button
+          variant="outlined"
+          size="small"
+          disabled={!table.getCanPreviousPage()}
+          onClick={() => table.previousPage()}
+        >
+          Previous
+        </Button>
+        <Typography variant="body2" color="text.secondary">
+          Page {table.getState().pagination.pageIndex + 1}
+        </Typography>
+        <Button
+          variant="outlined"
+          size="small"
+          disabled={!table.getCanNextPage()}
+          onClick={() => table.nextPage()}
+        >
+          Next
+        </Button>
+      </Box>
+
+      {/* ✏️ Edit Modal */}
+      <Dialog open={editModalOpen} onClose={() => setEditModalOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Edit Application</DialogTitle>
+        <DialogContent dividers>
+          <Grid container spacing={2}>
+            <Grid item xs={6}>
+              <TextField
+                fullWidth
+                label="Aadhar Number"
+                value={editData.aadhar_number || ""}
+                onChange={(e) => handleEditChange("aadhar_number", e.target.value)}
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField
+                fullWidth
+                label="First Name"
+                value={editData.first_name || ""}
+                onChange={(e) => handleEditChange("first_name", e.target.value)}
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField
+                fullWidth
+                label="Last Name"
+                value={editData.last_name || ""}
+                onChange={(e) => handleEditChange("last_name", e.target.value)}
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField
+                fullWidth
+                label="Loan Amount"
+                type="number"
+                value={editData.loan_amount || ""}
+                onChange={(e) => handleEditChange("loan_amount", e.target.value)}
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={6}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Status</InputLabel>
+                <Select
+                  label="Status"
+                  value={editData.status || ""}
+                  onChange={(e) => handleEditChange("status", e.target.value)}
+                >
+                  <MenuItem value="Pending">Pending</MenuItem>
+                  <MenuItem value="Approved">Approved</MenuItem>
+                  <MenuItem value="Rejected">Rejected</MenuItem>
+                  <MenuItem value="Under Review">Under Review</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                multiline
+                minRows={2}
+                label="Remarks"
+                value={editData.remarks || ""}
+                onChange={(e) => handleEditChange("remarks", e.target.value)}
+                size="small"
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditModalOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleEditSave}>
+            Save Changes
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/*  Snackbar Toast */}
+      <Snackbar
+        open={toast.open}
+        autoHideDuration={3000}
+        onClose={handleCloseToast}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert onClose={handleCloseToast} severity={toast.severity} variant="filled">
+          {toast.message}
+        </Alert>
+      </Snackbar>
+    </Box>
   );
 };
 
-export default ViewApplications; 
+export default ViewApplications;

@@ -7,11 +7,12 @@ from datetime import datetime, timedelta
 from werkzeug.utils import secure_filename
 import os
 from dotenv import load_dotenv
+from flask_cors import CORS
 
 load_dotenv()
 
 app = Flask(__name__, static_folder='../frontend/build', static_url_path='')
-CORS(app, origins=["http://localhost:3000", "http://127.0.0.1:3000"])
+CORS(app, origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5173"], supports_credentials=True)
 
 # Configuration
 #app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///instance/database.db')
@@ -161,12 +162,13 @@ def get_dashboard_stats():
         return jsonify({'error': str(e)}), 500
 
 # Loan application endpoints
-@app.route('/api/loans/applications', methods=['GET'])
+@app.route('/v1/api/loans/applications', methods=['GET'])
 def get_loan_applications():
     try:
         search_query = request.args.get('search', '')
-        
-        if search_query:
+        print("-----get_loan_applications called-----")
+
+        if search_query and search_query.lower() != 'all':
             applications = LoanApplication.query.filter(
                 (LoanApplication.first_name.ilike(f'%{search_query}%')) |
                 (LoanApplication.last_name.ilike(f'%{search_query}%')) |
@@ -251,6 +253,79 @@ def create_loan_application():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+@app.route('/api/loans/applications', methods=['GET'])
+def get_loan_applications_new():
+    try:
+        # Query parameters
+        search_query = request.args.get('search', '').strip()
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 10))
+        sort = request.args.get('sort', 'latest')  # 'latest', 'oldest', or 'none'
+
+        # Base query
+        query = LoanApplication.query
+
+        #  Search filters
+        if search_query and search_query.lower() != 'all':
+            search_filter = (
+                (LoanApplication.first_name.ilike(f"%{search_query}%")) |
+                (LoanApplication.last_name.ilike(f"%{search_query}%")) |
+                (LoanApplication.aadhar_number.ilike(f"%{search_query}%")) |
+                (LoanApplication.voter_id.ilike(f"%{search_query}%")) |
+                (LoanApplication.mobile_number.ilike(f"%{search_query}%")) |
+                (LoanApplication.loan_type.ilike(f"%{search_query}%")) |
+                (LoanApplication.society_name.ilike(f"%{search_query}%"))
+            )
+            query = query.filter(search_filter)
+
+        # Sorting
+        if sort == 'oldest':
+            query = query.order_by(LoanApplication.created_at.asc())
+        elif sort == 'latest':
+            query = query.order_by(LoanApplication.created_at.desc())
+
+        # Pagination
+        total = query.count()
+        applications = query.offset((page - 1) * limit).limit(limit).all()
+
+        # Format response
+        applications_list = [
+            {
+                'id': app.id,
+                'application_id': app.application_id,
+                'first_name': app.first_name,
+                'last_name': app.last_name,
+                'aadhar_number': app.aadhar_number,
+                'society_name': app.society_name,
+                'loan_type': app.loan_type,
+                'loan_amount': app.loan_amount,
+                'status': app.status,
+                'voter_id': app.voter_id,
+                'remarks': app.remarks,
+                'created_at': app.created_at.isoformat() if app.created_at else None,
+                'created_by': app.created_by,
+                'modified_at': app.updated_at.isoformat() if app.updated_at else None,
+                'modified_by': app.modified_by,
+            }
+            for app in applications
+        ]
+
+        # Pagination metadata
+        response = {
+            'applications': applications_list,
+            'pagination': {
+                'page': page,
+                'limit': limit,
+                'total': total,
+                'pages': (total + limit - 1) // limit
+            }
+        }
+
+        return jsonify(response), 200
+
+    except Exception as e:
+        print("Error in get_loan_applications_new:", e)
+        return jsonify({'error': str(e)}), 500
 
 # Public loan application search endpoint (no authentication required)
 @app.route('/api/public/loans/applications', methods=['GET'])
@@ -289,7 +364,7 @@ def get_public_loan_applications():
                 'status': app.status,
                 'created_at': app.created_at.isoformat() if app.created_at else None
             })
-        
+            print(result)
         return jsonify({'applications': result}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -298,13 +373,14 @@ def get_public_loan_applications():
 @app.route('/api/private/loans/applications', methods=['GET'])
 @jwt_required()
 def get_private_loan_applications():
+    print("In get_private_loan_applications")
     try:
         # Get search parameters
         aadhar_number = request.args.get('aadharNumber', '')
         mobile_number = request.args.get('mobileNumber', '')
-        first_name = request.args.get('firstName', '')
-        last_name = request.args.get('lastName', '')
-        
+        first_name = request.args.get('firstName') or request.args.get('first_name', '')
+        last_name = request.args.get('lastName') or request.args.get('last_name', '')
+
         # Build query
         query = LoanApplication.query
         
@@ -453,7 +529,7 @@ def reset_database():
 
 @app.route('/api/debug/add-sample-loans', methods=['POST'])
 def add_sample_loans():
-    """Add sample loan applications for testing"""
+    """Add sample loan applications for testing with updated schema"""
     try:
         sample_applications = [
             {
@@ -463,7 +539,12 @@ def add_sample_loans():
                 'mobile_number': '9876543210',
                 'loan_type': 'Personal',
                 'loan_amount': 50000,
-                'status': 'Pending'
+                'status': 'Pending',
+                'society_name': 'Shivaji Cooperative Society',
+                'voter_id': 'DLX1234567',
+                'remarks': 'First time applicant',
+                'created_by': 'Admin',
+                'modified_by': 'Admin'
             },
             {
                 'first_name': 'Priya',
@@ -472,7 +553,12 @@ def add_sample_loans():
                 'mobile_number': '9123456780',
                 'loan_type': 'Home',
                 'loan_amount': 2500000,
-                'status': 'Approved'
+                'status': 'Approved',
+                'society_name': 'Green Meadows Society',
+                'voter_id': 'GJY7654321',
+                'remarks': 'High credit score',
+                'created_by': 'Admin',
+                'modified_by': 'Admin'
             },
             {
                 'first_name': 'Amit',
@@ -481,44 +567,60 @@ def add_sample_loans():
                 'mobile_number': '9988776655',
                 'loan_type': 'Vehicle',
                 'loan_amount': 800000,
-                'status': 'Rejected'
+                'status': 'Rejected',
+                'society_name': 'Omkar Housing Society',
+                'voter_id': 'UPZ9876543',
+                'remarks': 'Low income to loan ratio',
+                'created_by': 'Admin',
+                'modified_by': 'Admin'
             }
         ]
-        
+
         for app_data in sample_applications:
-            # Check if application already exists
-            existing = LoanApplication.query.filter_by(
-                aadhar_number=app_data['aadhar_number']
-            ).first()
-            
-            if not existing:
-                # Generate application ID
-                last_app = LoanApplication.query.order_by(LoanApplication.id.desc()).first()
-                new_id = 1 if not last_app else last_app.id + 1
-                application_id = f"LOAN{new_id:04d}"
-                
-                application = LoanApplication(
-                    application_id=application_id,
-                    first_name=app_data['first_name'],
-                    last_name=app_data['last_name'],
-                    aadhar_number=app_data['aadhar_number'],
-                    mobile_number=app_data['mobile_number'],
-                    loan_type=app_data['loan_type'],
-                    loan_amount=app_data['loan_amount'],
-                    status=app_data['status'],
-                    # Add required fields with dummy data
-                    gender='Male',
-                    date_of_birth=datetime(1990, 1, 1).date()
-                )
-                
-                db.session.add(application)
-        
+            # Avoid duplicates by Aadhaar
+            existing = LoanApplication.query.filter_by(aadhar_number=app_data['aadhar_number']).first()
+            if existing:
+                continue
+
+            # Generate application ID
+            last_app = LoanApplication.query.order_by(LoanApplication.id.desc()).first()
+            new_id = 1 if not last_app else last_app.id + 1
+            application_id = f"LOAN{new_id:04d}"
+
+            application = LoanApplication(
+                application_id=application_id,
+                first_name=app_data['first_name'],
+                last_name=app_data['last_name'],
+                aadhar_number=app_data['aadhar_number'],
+                mobile_number=app_data['mobile_number'],
+                loan_type=app_data['loan_type'],
+                loan_amount=app_data['loan_amount'],
+                status=app_data['status'],
+                society_name=app_data.get('society_name', ''),
+                voter_id=app_data.get('voter_id', ''),
+                remarks=app_data.get('remarks', ''),
+                gender='Male',
+                date_of_birth=datetime(1990, 1, 1).date(),
+                city='Mumbai',
+                state='Maharashtra',
+                pincode='400001',
+                address='123 Test Street',
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow(),
+                created_by=app_data.get('created_by', 'System'),
+                modified_by=app_data.get('modified_by', 'System')
+            )
+
+            db.session.add(application)
+
         db.session.commit()
         return jsonify({'message': 'Sample loans added successfully'}), 200
-        
+
     except Exception as e:
         db.session.rollback()
+        print("Error in add_sample_loans:", e)
         return jsonify({'error': str(e)}), 500
+
 
 # Serve React App
 @app.route('/', defaults={'path': ''})
@@ -528,6 +630,93 @@ def serve_react_app(path):
         return send_from_directory(app.static_folder, path)
     else:
         return send_from_directory(app.static_folder, 'index.html')
+
+
+
+# ===============================================
+# Update Loan Application (Edit limited fields)
+# ===============================================
+@app.route('/api/loans/applications/<int:id>', methods=['PUT'])
+def update_loan_application(id):
+    try:
+        data = request.get_json()
+        print(f" Received update request for application ID {id}: {data}")
+
+        # Fetch application
+        application = LoanApplication.query.get(id)
+        if not application:
+            return jsonify({'error': 'Application not found'}), 404
+
+        # Editable fields only
+        editable_fields = [
+            'aadhar_number',
+            'first_name',
+            'last_name',
+            'loan_amount',
+            'status',
+            'remarks'
+        ]
+
+        # Track which fields changed
+        for field in editable_fields:
+            if field in data:
+                old_value = getattr(application, field)
+                new_value = data[field]
+                if old_value != new_value:
+                    print(f" Updating {field}: {old_value} → {new_value}")
+                    setattr(application, field, new_value)
+
+        # Update timestamps
+        application.updated_at = datetime.utcnow()
+
+        # Commit changes
+        db.session.commit()
+        db.session.refresh(application)
+
+        #  Prepare updated record for frontend
+        updated_data = {
+            'id': application.id,
+            'application_id': application.application_id,
+            'first_name': application.first_name,
+            'last_name': application.last_name,
+            'aadhar_number': application.aadhar_number,
+            'loan_amount': application.loan_amount,
+            'status': application.status,
+            'remarks': application.remarks,
+            'updated_at': application.updated_at.isoformat() if application.updated_at else None
+        }
+
+        print(" Application updated successfully:", updated_data)
+
+        response = jsonify({
+            'message': 'Application updated successfully',
+            'updated_application': updated_data
+        })
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        return response, 200
+
+    except Exception as e:
+        db.session.rollback()
+        print(" Error updating application:", e)
+        return jsonify({'error': str(e)}), 500
+
+
+# ===============================================
+# Delete Loan Application
+# ===============================================
+@app.route('/api/loans/applications/<int:id>', methods=['DELETE'])
+def delete_loan_application(id):
+    try:
+        application = LoanApplication.query.get(id)
+        if not application:
+            return jsonify({'error': 'Application not found'}), 404
+
+        db.session.delete(application)
+        db.session.commit()
+        return jsonify({'message': 'Application deleted successfully'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     print("=" * 60)
