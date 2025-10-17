@@ -235,7 +235,11 @@ def create_loan_application():
             photo_url=data.get('photo_url', ''),
             loan_type=data.get('loan_type', 'Personal'),
             loan_amount=float(data.get('loan_amount', 0)),
-            status='Pending'
+            society_name=data.get('society', ''),
+            voter_id=data.get('voter_id', ''),
+            status='Pending',
+            created_by="",
+            modified_by=""
         )
         
         # Set password if provided
@@ -253,10 +257,12 @@ def create_loan_application():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+        
 @app.route('/api/loans/applications', methods=['GET'])
 def get_loan_applications_new():
     try:
         # Query parameters
+        print('New get_loan_applications_new called')
         search_query = request.args.get('search', '').strip()
         page = int(request.args.get('page', 1))
         limit = int(request.args.get('limit', 10))
@@ -632,90 +638,83 @@ def serve_react_app(path):
         return send_from_directory(app.static_folder, 'index.html')
 
 
-
 # ===============================================
 # Update Loan Application (Edit limited fields)
 # ===============================================
-@app.route('/api/loans/applications/<int:id>', methods=['PUT'])
+@app.route('/api/loans/applications/<string:id>', methods=['PUT'])
+@jwt_required()
 def update_loan_application(id):
     try:
         data = request.get_json()
-        print(f" Received update request for application ID {id}: {data}")
+        print(f"Received update request for application ID {id}: {data}")
 
-        # Fetch application
-        application = LoanApplication.query.get(id)
+        # Try to match by both ID or application_id (LOAN0001 etc.)
+        application = LoanApplication.query.filter(
+            (LoanApplication.id == id) | (LoanApplication.application_id == id)
+        ).first()
         if not application:
             return jsonify({'error': 'Application not found'}), 404
 
-        # Editable fields only
+        # Editable fields
         editable_fields = [
-            'aadhar_number',
-            'first_name',
-            'last_name',
-            'loan_amount',
-            'status',
-            'remarks'
+            'aadhar_number', 'first_name', 'last_name',
+            'loan_amount', 'status', 'remarks'
         ]
 
-        # Track which fields changed
         for field in editable_fields:
             if field in data:
                 old_value = getattr(application, field)
                 new_value = data[field]
                 if old_value != new_value:
-                    print(f" Updating {field}: {old_value} → {new_value}")
+                    print(f"Updating {field}: {old_value} → {new_value}")
                     setattr(application, field, new_value)
 
-        # Update timestamps
         application.updated_at = datetime.utcnow()
-
-        # Commit changes
         db.session.commit()
-        db.session.refresh(application)
 
-        #  Prepare updated record for frontend
-        updated_data = {
-            'id': application.id,
-            'application_id': application.application_id,
-            'first_name': application.first_name,
-            'last_name': application.last_name,
-            'aadhar_number': application.aadhar_number,
-            'loan_amount': application.loan_amount,
-            'status': application.status,
-            'remarks': application.remarks,
-            'updated_at': application.updated_at.isoformat() if application.updated_at else None
-        }
-
-        print(" Application updated successfully:", updated_data)
-
-        response = jsonify({
+        return jsonify({
             'message': 'Application updated successfully',
-            'updated_application': updated_data
-        })
-        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
-        return response, 200
+            'updated_application': {
+                'id': application.id,
+                'application_id': application.application_id,
+                'first_name': application.first_name,
+                'last_name': application.last_name,
+                'aadhar_number': application.aadhar_number,
+                'loan_amount': application.loan_amount,
+                'status': application.status,
+                'remarks': application.remarks,
+                'updated_at': application.updated_at.isoformat() if application.updated_at else None
+            }
+        }), 200
 
     except Exception as e:
         db.session.rollback()
-        print(" Error updating application:", e)
+        print("Error updating application:", e)
         return jsonify({'error': str(e)}), 500
 
 
 # ===============================================
 # Delete Loan Application
 # ===============================================
-@app.route('/api/loans/applications/<int:id>', methods=['DELETE'])
+@app.route('/api/loans/applications/<string:id>', methods=['DELETE'])
+@jwt_required()
 def delete_loan_application(id):
     try:
-        application = LoanApplication.query.get(id)
+        # Match by ID or application_id
+        application = LoanApplication.query.filter(
+            (LoanApplication.id == id) | (LoanApplication.application_id == id)
+        ).first()
+
         if not application:
             return jsonify({'error': 'Application not found'}), 404
 
         db.session.delete(application)
         db.session.commit()
         return jsonify({'message': 'Application deleted successfully'}), 200
+
     except Exception as e:
         db.session.rollback()
+        print("Error deleting application:", e)
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':

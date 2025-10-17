@@ -9,8 +9,8 @@ import {
   Drawer,
   Divider,
 } from "@mui/joy";
-import { Menu, X } from "lucide-react"; //  lightweight icons
-import logo from "../assets/logo_connected1.png"; //  ensure this exists
+import { Menu, X } from "lucide-react";
+import logo from "../assets/co_network.png"; // ✅ Ensure correct path
 
 const NavBar = ({ userName, onLogout, onNavigate, currentView }) => {
   const [open, setOpen] = useState(false);
@@ -18,19 +18,19 @@ const NavBar = ({ userName, onLogout, onNavigate, currentView }) => {
   const menuItems = [
     ["dashboard", "Dashboard"],
     ["create-loan", "Create Loan"],
-    ["view-applications", "Applications"],
-    ["services", "Services"],
+    ["view-applications", "Loans"],
     ["private-search", "Search"],
+    ["services", "Services"],
   ];
 
   const handleNavigate = (view) => {
     onNavigate(view);
-    setOpen(false); // close drawer on selection
+    setOpen(false);
   };
 
   return (
     <>
-      {/* TOP NAV BAR */}
+      {/* 🌟 TOP NAV BAR */}
       <Sheet
         variant="soft"
         color="neutral"
@@ -41,7 +41,7 @@ const NavBar = ({ userName, onLogout, onNavigate, currentView }) => {
           alignItems: "center",
           justifyContent: "space-between",
           px: { xs: 2, md: 3 },
-          py: 2,
+          py: 1.6,
           boxShadow: "sm",
           backdropFilter: "blur(6px)",
           position: "sticky",
@@ -49,29 +49,41 @@ const NavBar = ({ userName, onLogout, onNavigate, currentView }) => {
           zIndex: 1200,
         }}
       >
-        {/* Left: Logo + Title */}
-        <Stack direction="row" alignItems="center" spacing={1.5}>
+        {/* LEFT: Logo + Title */}
+        <Stack direction="row" alignItems="center" spacing={1.0}>
           <Box
             component="img"
             src={logo}
             alt="Cooperative Bank Network Logo"
             sx={{
-              width: 150,
-              height: 60,
-              borderRadius: "md",
+              width: { xs: 50, sm: 50, md: 80 }, 
+              height: "auto",
               objectFit: "contain",
-              filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.2))",
+              filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.25))",
+              transition: "0.3s ease",
             }}
           />
-          <Typography level="title-lg" color="primary" fontWeight="lg">
+
+          {/* Optional Title (hidden on small screens) */}
+          <Typography
+            level="title-lg"
+            color="primary"
+            fontWeight="lg"
+            sx={{
+              fontSize: { xs: "1rem", sm: "1.1rem", md: "1.25rem" },
+              display: { xs: "none", lg: "block" },
+              ml: 1,
+              whiteSpace: "nowrap",
+            }}
+          >
             Cooperative Bank Network
           </Typography>
         </Stack>
 
-        {/* Desktop Buttons */}
+        {/* DESKTOP MENU */}
         <Stack
           direction="row"
-          spacing={1.2}
+          spacing={1.0}
           alignItems="center"
           sx={{ display: { xs: "none", md: "flex" } }}
         >
@@ -84,24 +96,30 @@ const NavBar = ({ userName, onLogout, onNavigate, currentView }) => {
               onClick={() => handleNavigate(view)}
               sx={{
                 fontWeight: 500,
-                px: 1.8,
+                px: 2,
+                "&:hover": { transform: "scale(1.05)" },
               }}
             >
               {label}
             </Button>
           ))}
+
           <Button
             size="sm"
             variant="outlined"
             color="danger"
             onClick={onLogout}
-            sx={{ fontWeight: 500, px: 2 }}
+            sx={{
+              fontWeight: 500,
+              px: 2.5,
+              "&:hover": { backgroundColor: "danger.softBg" },
+            }}
           >
             Logout
           </Button>
         </Stack>
 
-        {/* Mobile Menu Button */}
+        {/* MOBILE MENU BUTTON */}
         <IconButton
           variant="plain"
           color="neutral"
@@ -112,7 +130,7 @@ const NavBar = ({ userName, onLogout, onNavigate, currentView }) => {
         </IconButton>
       </Sheet>
 
-      {/* MOBILE DRAWER */}
+      {/* 📱 MOBILE DRAWER */}
       <Drawer
         open={open}
         onClose={() => setOpen(false)}
@@ -130,7 +148,11 @@ const NavBar = ({ userName, onLogout, onNavigate, currentView }) => {
             <Typography level="title-md" fontWeight="lg" color="primary">
               Menu
             </Typography>
-            <IconButton variant="plain" color="neutral" onClick={() => setOpen(false)}>
+            <IconButton
+              variant="plain"
+              color="neutral"
+              onClick={() => setOpen(false)}
+            >
               <X />
             </IconButton>
           </Stack>
@@ -148,7 +170,7 @@ const NavBar = ({ userName, onLogout, onNavigate, currentView }) => {
                 sx={{
                   fontWeight: 500,
                   justifyContent: "flex-start",
-                  textAlign: "left",
+                  py: 1.1,
                 }}
               >
                 {label}

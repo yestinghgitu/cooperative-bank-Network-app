@@ -11,17 +11,19 @@ import {
   IconButton,
   Alert,
   CircularProgress,
+  useColorScheme,
 } from "@mui/joy";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { authAPI } from "../services/api";
-import logo from "../assets/co_network.png"; // ensure logo.svg is in src/assets/
+import logo from "../assets/logo_login.png"; // ✅ use the transparent version
 
-const LoginPage = ({ onLogin, onSwitchRegister, onStatusCheck }) => {
+const LoginPage = ({ onLogin, onSwitchRegister }) => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const { mode } = useColorScheme(); // detect dark/light mode
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -35,7 +37,7 @@ const LoginPage = ({ onLogin, onSwitchRegister, onStatusCheck }) => {
     setLoading(true);
     try {
       const res = await authAPI.login({ username, password });
-      const { access_token, user } = res.data; // important
+      const { access_token, user } = res.data;
       if (!access_token) throw new Error("Invalid login response");
       localStorage.setItem("authToken", access_token);
       localStorage.setItem("user", JSON.stringify(user));
@@ -55,6 +57,7 @@ const LoginPage = ({ onLogin, onSwitchRegister, onStatusCheck }) => {
         alignItems: "center",
         justifyContent: "center",
         bgcolor: "background.body",
+        px: 2,
       }}
     >
       <Card
@@ -62,28 +65,32 @@ const LoginPage = ({ onLogin, onSwitchRegister, onStatusCheck }) => {
         sx={{
           width: 400,
           borderRadius: "xl",
-          boxShadow: "sm",
+          boxShadow: "lg",
           textAlign: "center",
-          p: 2,
+          p: 3,
+          backdropFilter: "blur(6px)",
         }}
       >
         <CardContent>
-          {/* Logo Section */}
+          {/* Logo */}
           <Box sx={{ display: "flex", justifyContent: "center", mb: 1 }}>
             <img
               src={logo}
               alt="Cooperative Bank Network Logo"
-              width={80}
-              height={80}
-              style={{ borderRadius: "8px" }}
+              width={200}
+              height="auto"
+              style={{
+                borderRadius: "10px",
+                filter:
+                  mode === "dark"
+                    ? "brightness(1.1) drop-shadow(0 0 3px rgba(255,255,255,0.3))"
+                    : "drop-shadow(0 0px 0px rgba(0,0,0,0.25))",
+              }}
             />
           </Box>
 
-          <Typography level="h4" fontWeight={700}>
-            Cooperative Bank Network
-          </Typography>
-          <Typography level="body-sm" mb={2} color="neutral.500">
-            Welcome back! Please sign in
+          <Typography level="body-sm" mb={1} color="neutral.500">
+            Bringing cooperative banks together — securely and digitally.
           </Typography>
 
           {errorMsg && (
@@ -92,8 +99,9 @@ const LoginPage = ({ onLogin, onSwitchRegister, onStatusCheck }) => {
             </Alert>
           )}
 
+          {/* Login Form */}
           <form onSubmit={handleSubmit}>
-            <Stack spacing={2}>
+            <Stack spacing={1.5}>
               <Box>
                 <FormLabel>Username</FormLabel>
                 <Input
@@ -126,20 +134,37 @@ const LoginPage = ({ onLogin, onSwitchRegister, onStatusCheck }) => {
                 />
               </Box>
 
-              <Button type="submit" disabled={loading}>
+              <Button
+                type="submit"
+                disabled={loading}
+                fullWidth
+                sx={{ py: 1.2 }}
+              >
                 {loading ? <CircularProgress size="sm" /> : "Sign In"}
               </Button>
             </Stack>
           </form>
 
-          <Stack direction="row" justifyContent="space-between" mt={2}>
+          <Stack direction="row" justifyContent="center" mt={2}>
             <Button variant="plain" onClick={onSwitchRegister}>
-              Create Account
-            </Button>
-            <Button variant="plain" color="primary" onClick={onStatusCheck}>
-              Check Loan Status
+              Don’t have an account? Sign up
             </Button>
           </Stack>
+
+          <Typography level="body-xs" mt={2} color="neutral.500">
+            For more details contact:{" "}
+            <a href="tel:+917892611670" style={{ color: "#1a73e8" }}>
+              +91 78926 11670
+            </a>{" "}
+            |{" "}
+            <a href="tel:+919513189111" style={{ color: "#1a73e8" }}>
+              +91 95131 89111
+            </a>{" "}
+            {/* |{" "}
+            <a href="tel:+919738958721" style={{ color: "#1a73e8" }}>
+              +91 97389 58721
+            </a> */}
+          </Typography>
         </CardContent>
       </Card>
     </Box>

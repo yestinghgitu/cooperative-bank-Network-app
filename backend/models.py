@@ -87,6 +87,7 @@ class LoanApplication(db.Model):
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    lead_status = db.Column(db.String(50), default='Pending')
 
     def set_password(self, password):
         salt = bcrypt.gensalt()

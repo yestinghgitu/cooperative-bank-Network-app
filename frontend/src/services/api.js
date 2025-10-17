@@ -53,47 +53,50 @@ export const dashboardAPI = {
 };
 
 // Loan API - Updated with field mapping
+// Loan API - Cleaned up version
 export const loanAPI = {
-    createApplication: (applicationData) => api.post('/loans/applications', applicationData),
+  // Create loan application
+  createApplication: (applicationData) =>
+    api.post('/loans/applications', applicationData),
 
-    // Public search method (for customers to check status)
-    searchApplicationsPublic: (searchParams = {}) => {
-        // Map frontend field names to backend field names
-        const mappedParams = {};
-        if (searchParams.aadharNumber) mappedParams.aadharNumber = searchParams.aadharNumber;
-        if (searchParams.mobileNumber) mappedParams.mobileNumber = searchParams.mobileNumber;
-        if (searchParams.firstName) mappedParams.first_name = searchParams.firstName;
-        if (searchParams.lastName) mappedParams.last_name = searchParams.lastName;
+  // Public search method (for customers to check status)
+  searchApplicationsPublic: (searchParams = {}) => {
+    const mappedParams = {};
+    if (searchParams.aadharNumber) mappedParams.aadharNumber = searchParams.aadharNumber;
+    if (searchParams.mobileNumber) mappedParams.mobileNumber = searchParams.mobileNumber;
+    if (searchParams.firstName) mappedParams.first_name = searchParams.firstName;
+    if (searchParams.lastName) mappedParams.last_name = searchParams.lastName;
 
-        return api.get('/public/loans/applications', { params: mappedParams });
-    },
+    return api.get('/public/loans/applications', { params: mappedParams });
+  },
 
-     searchApplicationsWithFilters: (searchParams) => {
-        return api.get('/loans/applications', { params: searchParams });
-    },
+  // Private search method (for authenticated users with detailed info)
+  searchApplicationsPrivate: (searchParams = {}) => {
+    const mappedParams = {};
+    if (searchParams.aadharNumber) mappedParams.aadharNumber = searchParams.aadharNumber;
+    if (searchParams.mobileNumber) mappedParams.mobileNumber = searchParams.mobileNumber;
+    if (searchParams.firstName) mappedParams.first_name = searchParams.firstName;
+    if (searchParams.lastName) mappedParams.last_name = searchParams.lastName;
 
-    // Private search method (for authenticated users with detailed info)
-    searchApplicationsPrivate: (searchParams = {}) => {
-        // Map frontend field names to backend field names
-        const mappedParams = {};
-        if (searchParams.aadharNumber) mappedParams.aadharNumber = searchParams.aadharNumber;
-        if (searchParams.mobileNumber) mappedParams.mobileNumber = searchParams.mobileNumber;
-        if (searchParams.firstName) mappedParams.first_name = searchParams.firstName;
-        if (searchParams.lastName) mappedParams.last_name = searchParams.lastName;
+    return api.get('/private/loans/applications', { params: mappedParams });
+  },
 
-        return api.get('/private/loans/applications', { params: mappedParams });
-    },
-   createApplication: (applicationData) => api.post('/loans/applications', applicationData),
+  // Admin filters
+  searchApplicationsWithFilters: (searchParams) =>
+    api.get('/loans/applications', { params: searchParams }),
 
-   deleteApplication: (id) => api.delete(`/loans/applications/${id}`),
+  // Delete loan application
+  deleteApplication: (id) => api.delete(`/loans/applications/${id}`),
 
-   searchApplicationsWithFilters: (searchParams) => {
-    return api.get('/loans/applications', { params: searchParams });
-    },
-    checkStatusWithPassword: (applicationId, password) =>
-        api.post('/public/loan-status', { application_id: applicationId, password }),
-    updateApplicationStatus: (id, status) => api.put(`/loans/applications/${id}/status`, { status }),
+  // Update application status
+  updateApplicationStatus: (id, status) =>
+    api.put(`/loans/applications/${id}/status`, { status }),
+
+  // Check public loan status with password
+  checkStatusWithPassword: (applicationId, password) =>
+    api.post('/public/loan-status', { application_id: applicationId, password }),
 };
+
 
 // Upload API
 export const uploadAPI = {
