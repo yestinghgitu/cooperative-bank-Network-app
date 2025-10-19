@@ -60,7 +60,7 @@ const ViewApplications = ({ onBack }) => {
   const [deleteApp, setDeleteApp] = useState(null);
   const [page, setPage] = useState(1);
 
-  // Fetch loan applications
+  // Fetch Loans
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -72,7 +72,7 @@ const ViewApplications = ({ onBack }) => {
         setFiltered(apps);
       } catch (error) {
         console.error("Error loading applications:", error);
-        toast.error("Failed to load loan applications.");
+        toast.error("Failed to load Loans.");
       } finally {
         setLoading(false);
       }
@@ -101,14 +101,14 @@ const ViewApplications = ({ onBack }) => {
     const worksheet = XLSX.utils.json_to_sheet(filtered);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Applications");
-    XLSX.writeFile(workbook, "loan_applications.xlsx");
+    XLSX.writeFile(workbook, "loans.xlsx");
     toast.success("Excel file exported successfully!");
   };
 
   // Export PDF
   const exportToPDF = () => {
     const doc = new jsPDF();
-    doc.text("Loan Applications", 14, 10);
+    doc.text("Loans", 14, 10);
     const tableColumn = Object.keys(visibleColumns).filter(
       (key) => visibleColumns[key]
     );
@@ -120,7 +120,7 @@ const ViewApplications = ({ onBack }) => {
       body: tableRows,
       startY: 20,
     });
-    doc.save("loan_applications.pdf");
+    doc.save("loan.pdf");
     toast.success("PDF exported successfully!");
   };
 
@@ -131,7 +131,7 @@ const ViewApplications = ({ onBack }) => {
   const handleEditSave = async () => {
     try {
       await loanAPI.updateApplication(editApp.application_id, editApp);
-      toast.success("Application updated successfully!");
+      toast.success("Loan updated successfully!");
       setApplications((prev) =>
         prev.map((a) =>
           a.application_id === editApp.application_id ? editApp : a
@@ -147,7 +147,7 @@ const ViewApplications = ({ onBack }) => {
   const handleDelete = async () => {
     try {
       await loanAPI.deleteApplication(deleteApp.application_id);
-      toast.success("Application deleted successfully!");
+      toast.success("Loan deleted successfully!");
       setApplications((prev) =>
         prev.filter((a) => a.application_id !== deleteApp.application_id)
       );
@@ -184,13 +184,13 @@ const ViewApplications = ({ onBack }) => {
         }}
       >
         <Typography level="h4" fontWeight="lg">
-          Loan Applications
+          Loans
         </Typography>
 
         <Box sx={{ display: "flex", gap: 1 }}>
           <Input
             startDecorator={<Search size={18} />}
-            placeholder="Search applications..."
+            placeholder="Search Loans..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -224,14 +224,14 @@ const ViewApplications = ({ onBack }) => {
           >
             Excel
           </Button>
-          <Button
+          {/* <Button
             variant="soft"
             color="success"
             startDecorator={<FileDown size={18} />}
             onClick={exportToPDF}
           >
             PDF
-          </Button>
+          </Button> */}
         </Box>
       </Box>
 
@@ -286,9 +286,9 @@ const ViewApplications = ({ onBack }) => {
                     <td>
                       <Chip
                         color={
-                          app.status === "Approved"
+                          app.status === "Running"
                             ? "success"
-                            : app.status === "Pending"
+                            : app.status === "Due"
                             ? "warning"
                             : "danger"
                         }
@@ -378,7 +378,7 @@ const ViewApplications = ({ onBack }) => {
         <Modal open onClose={() => setViewApp(null)}>
           <ModalDialog size="lg" sx={{ maxHeight: "90vh", overflowY: "auto" }}>
             <Typography level="h5" mb={1}>
-              Application Details — {viewApp.application_id}
+              Loan Details — {viewApp.application_id}
             </Typography>
             <Divider sx={{ mb: 2 }} />
             <Box display="grid" gridTemplateColumns="1fr 1fr" gap={2}>
@@ -404,7 +404,7 @@ const ViewApplications = ({ onBack }) => {
         <Modal open onClose={() => setEditApp(null)}>
           <ModalDialog>
             <Typography level="h5" mb={1}>
-              Edit Application
+              Edit Loan
             </Typography>
             <Box display="grid" gap={1}>
               <Input
@@ -439,9 +439,13 @@ const ViewApplications = ({ onBack }) => {
                 value={editApp.status || "Pending"}
                 onChange={(e, val) => setEditApp({ ...editApp, status: val })}
               >
-                <Option value="Pending">Pending</Option>
-                <Option value="Approved">Approved</Option>
-                <Option value="Rejected">Rejected</Option>
+                <Option value="Due">Due</Option>
+                <Option value="Overdue">Overdue</Option>
+                <Option value="Litigation">Litigation</Option>
+
+                {/* <Option value="Pending">Pending</Option> */}
+                <Option value="Running">Running</Option>
+                {/* <Option value="Rejected">Rejected</Option> */}
               </Select>
               <Input
                 placeholder="Remarks"

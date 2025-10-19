@@ -191,9 +191,9 @@ const LoanSearch = ({ onBack }) => {
                       level="body-sm"
                       fontWeight="lg"
                       color={
-                        app.status === "Approved"
+                        app.status === "Running"
                           ? "success"
-                          : app.status === "Pending"
+                          : app.status === "Due" || app.status === "Overdue" || app.status === "Litigation"
                           ? "warning"
                           : "neutral"
                       }

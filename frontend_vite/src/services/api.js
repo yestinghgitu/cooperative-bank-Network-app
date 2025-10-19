@@ -1,6 +1,5 @@
-// src/services/api.js
 import axios from "axios";
-import { toast } from "sonner"; // you already used sonner in main.jsx
+import { toast } from "sonner";
 
 const api = axios.create({
   baseURL: process.env.NODE_ENV === "production" ? "/api" : "http://localhost:5000/api",
@@ -31,7 +30,6 @@ async function safeRequest(promise, successMsg = null, errorMsg = "Something wen
   try {
     const res = await promise;
     if (successMsg) toast.success(successMsg);
-    // return the axios response (not only .data) so callers can check data/pagination
     return res;
   } catch (err) {
     console.error("API Error:", err.response?.data || err.message);
@@ -48,9 +46,7 @@ export const authAPI = {
   getProfile: () => safeRequest(api.get("/auth/profile")),
 };
 
-export const dashboardAPI = {
-  getStats: () => safeRequest(api.get("/dashboard/stats")),
-};
+export const dashboardAPI = { getStats: () => safeRequest(api.get("/dashboard/stats")) };
 
 export const loanAPI = {
   createApplication: (data) => safeRequest(api.post("/loans/applications", data)),
@@ -58,7 +54,6 @@ export const loanAPI = {
     safeRequest(api.get("/loans/applications", { params: { page, limit, search, sort } }), null, "Failed to fetch loan applications"),
   updateApplication: (id, data) => safeRequest(api.put(`/loans/applications/${id}`, data)),
   deleteApplication: (id) => safeRequest(api.delete(`/loans/applications/${id}`)),
-  // public/private search:
   searchApplicationsPublic: (params) => safeRequest(api.get("/public/loans/applications", { params })),
   searchApplicationsPrivate: (params) => safeRequest(api.get("/private/loans/applications", { params })),
 };
@@ -67,8 +62,14 @@ export const uploadAPI = {
   uploadPhoto: (formData) => safeRequest(api.post("/upload/photo", formData, { headers: { "Content-Type": "multipart/form-data" } })),
 };
 
-export const servicesAPI = {
-  getServices: () => safeRequest(api.get("/services")),
+export const servicesAPI = { getServices: () => safeRequest(api.get("/services")) };
+
+export const adminAPI = {
+  getUsers: () => safeRequest(api.get("/admin/users")),
+  createUser: (data) => safeRequest(api.post("/admin/users", data), "User created successfully"),
+  updateUser: (id, data) => safeRequest(api.put(`/admin/users/${id}`, data), "User updated successfully"),
+  deleteUser: (id) => safeRequest(api.delete(`/admin/users/${id}`), "User deleted successfully"),
+  resetPassword: (id, password) => safeRequest(api.post(`/admin/users/${id}/reset-password`, { password }), "Password reset successfully"),
 };
 
 export default api;

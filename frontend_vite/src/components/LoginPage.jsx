@@ -145,11 +145,11 @@ const LoginPage = ({ onLogin, onSwitchRegister }) => {
             </Stack>
           </form>
 
-          <Stack direction="row" justifyContent="center" mt={2}>
+          {/* <Stack direction="row" justifyContent="center" mt={2}>
             <Button variant="plain" onClick={onSwitchRegister}>
               Don’t have an account? Sign up
             </Button>
-          </Stack>
+          </Stack> */}
 
           <Typography level="body-xs" mt={2} color="neutral.500">
             For more details contact:{" "}

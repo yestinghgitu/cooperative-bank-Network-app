@@ -1,5 +1,5 @@
 from flask import jsonify, request
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, get_jwt
 from models import db, User
 from datetime import datetime, timedelta
 import json
@@ -18,13 +18,10 @@ def init_auth_routes(app):
                 return jsonify({'error': 'Username and password required'}), 400
 
             user = User.query.filter_by(username=username).first()
-
             if user and user.check_password(password):
-                # Update last login
                 user.last_login = datetime.utcnow()
                 db.session.commit()
 
-                # ✅ FIX: identity must be a string
                 access_token = create_access_token(
                     identity=str(user.id),
                     additional_claims={
@@ -77,14 +74,10 @@ def init_auth_routes(app):
                 created_at=datetime.utcnow()
             )
             user.set_password(password)
-
             db.session.add(user)
             db.session.commit()
 
-            return jsonify({
-                'message': 'User created successfully',
-                'user': user.to_dict()
-            }), 201
+            return jsonify({'message': 'User created successfully', 'user': user.to_dict()}), 201
 
         except json.JSONDecodeError:
             return jsonify({'error': 'Malformed JSON in request body'}), 400
@@ -98,13 +91,13 @@ def init_auth_routes(app):
     @jwt_required()
     def verify_token():
         try:
-            user_id = get_jwt_identity()  # identity is now a string
+            user_id = get_jwt_identity()
             user = User.query.get(int(user_id))
-
             if not user:
                 return jsonify({'error': 'User not found'}), 404
 
-            return jsonify({'valid': True, 'user': user.to_dict()}), 200
+            claims = get_jwt()
+            return jsonify({'valid': True, 'user': user.to_dict(), 'claims': claims}), 200
 
         except Exception as e:
             return jsonify({'error': str(e)}), 500
@@ -114,7 +107,6 @@ def init_auth_routes(app):
     @app.route('/api/auth/logout', methods=['POST'])
     @jwt_required()
     def logout():
-        # JWT logout is handled client-side by deleting the token
         return jsonify({'message': 'Logged out successfully'}), 200
 
 
@@ -125,7 +117,6 @@ def init_auth_routes(app):
         try:
             user_id = get_jwt_identity()
             user = User.query.get(int(user_id))
-
             if not user:
                 return jsonify({'error': 'User not found'}), 404
 

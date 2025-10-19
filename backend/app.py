@@ -33,6 +33,105 @@ db.init_app(app)
 
 # Initialize auth routes
 init_auth_routes(app)
+# ==========================
+# Admin User Management
+# ==========================
+from flask_jwt_extended import get_jwt_identity
+
+def admin_required(fn):
+    """Decorator to restrict access to admin users only"""
+    from functools import wraps
+
+    @wraps(fn)
+    @jwt_required()
+    def wrapper(*args, **kwargs):
+        current_user_id = get_jwt_identity()
+        current_user = User.query.get(current_user_id)
+        if not current_user or current_user.role != 'admin':
+            return jsonify({'error': 'Admin privileges required'}), 403
+        return fn(*args, **kwargs)
+    return wrapper
+
+# List all users
+@app.route('/api/admin/users', methods=['GET'])
+@admin_required
+def list_users():
+    users = User.query.all()
+    return jsonify([u.to_dict() for u in users]), 200
+
+# Create new user
+@app.route('/api/admin/users', methods=['POST'])
+@admin_required
+def create_user():
+    data = request.get_json()
+    if not data.get('username') or not data.get('password'):
+        return jsonify({'error': 'Username and password required'}), 400
+
+    if User.query.filter_by(username=data['username']).first():
+        return jsonify({'error': 'Username already exists'}), 400
+
+    user = User(
+        username=data['username'],
+        full_name=data.get('full_name', ''),
+        email=data.get('email', ''),
+        branch=data.get('branch', ''),
+        role=data.get('role', 'user'),
+        created_by=get_jwt_identity()
+    )
+    user.set_password(data['password'])
+    db.session.add(user)
+    db.session.commit()
+    return jsonify({'message': 'User created successfully', 'user': user.to_dict()}), 201
+
+# Update user info
+@app.route('/api/admin/users/<int:user_id>', methods=['PUT'])
+@admin_required
+def update_user(user_id):
+    data = request.get_json()
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    for field in ['full_name', 'email', 'branch', 'role']:
+        if field in data:
+            setattr(user, field, data[field])
+
+    if 'password' in data and data['password']:
+        user.set_password(data['password'])
+
+    user.modified_by = get_jwt_identity()
+    db.session.commit()
+    return jsonify({'message': 'User updated successfully', 'user': user.to_dict()}), 200
+
+# Delete user
+@app.route('/api/admin/users/<int:user_id>', methods=['DELETE'])
+@admin_required
+def delete_user(user_id):
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    if user.role == 'admin':
+        return jsonify({'error': 'Cannot delete an admin user'}), 403
+    db.session.delete(user)
+    db.session.commit()
+    return jsonify({'message': 'User deleted successfully'}), 200
+
+# Reset user password
+@app.route('/api/admin/users/<int:user_id>/reset-password', methods=['POST'])
+@admin_required
+def reset_password(user_id):
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    new_password = request.json.get('password')
+    if not new_password:
+        return jsonify({'error': 'Password required'}), 400
+
+    user.set_password(new_password)
+    user.modified_by = get_jwt_identity()
+    db.session.commit()
+    return jsonify({'message': f'Password for {user.username} reset successfully'}), 200
 
 # Utility functions
 def allowed_file(filename):
@@ -312,6 +411,7 @@ def get_loan_applications_new():
                 'created_by': app.created_by,
                 'modified_at': app.updated_at.isoformat() if app.updated_at else None,
                 'modified_by': app.modified_by,
+                'mobile_number': app.mobile_number,
             }
             for app in applications
         ]

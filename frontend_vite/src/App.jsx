@@ -14,6 +14,7 @@ import LoanSearch from "./components/LoanSearch";
 import LoanStatusCheck from "./components/LoanStatusCheck";
 import NavBar from "./components/NavBar";
 import { authAPI } from "./services/api";
+import AdminUsers from "./components/AdminUsers";
 
 const theme = extendTheme({
   colorSchemes: {
@@ -47,15 +48,17 @@ function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Check for existing authentication on app start
+  // ✅ Check for existing authentication on app start
   useEffect(() => {
     const checkAuth = async () => {
       const token = localStorage.getItem("authToken");
       const userData = localStorage.getItem("user");
+
       if (token && userData) {
         try {
           await authAPI.verifyToken();
-          setUser(JSON.parse(userData));
+          const parsedUser = JSON.parse(userData);
+          setUser(parsedUser);
           setIsAuthenticated(true);
           setCurrentView("dashboard");
         } catch {
@@ -69,12 +72,18 @@ function App() {
     checkAuth();
   }, []);
 
+  // ✅ Handle successful login
   const handleLogin = (userData) => {
+    // Ensure we store user with role
+    if (userData && userData.role) {
+      localStorage.setItem("user", JSON.stringify(userData));
+    }
     setUser(userData);
     setIsAuthenticated(true);
     setCurrentView("dashboard");
   };
 
+  // ✅ Logout
   const handleLogout = () => {
     localStorage.clear();
     setUser(null);
@@ -82,8 +91,10 @@ function App() {
     setCurrentView("login");
   };
 
+  // ✅ Navigation
   const handleNavigation = (view) => setCurrentView(view);
 
+  // ✅ Loading screen
   if (loading) {
     return (
       <CssVarsProvider theme={theme}>
@@ -94,7 +105,6 @@ function App() {
             height: "100vh",
             alignItems: "center",
             justifyContent: "center",
-            fontSize: "lg",
           }}
         >
           <Typography level="title-md" color="neutral">
@@ -111,7 +121,8 @@ function App() {
       <Box sx={{ minHeight: "100vh", bgcolor: "background.body" }}>
         {isAuthenticated && (
           <NavBar
-            userName={user?.full_name || user?.username || "User"}
+            userName={user?.full_name || user?.username || user?.name || "User"}
+            userRole={user?.role || "user"} // ✅ pass role
             onLogout={handleLogout}
             onNavigate={handleNavigation}
             currentView={currentView}
@@ -119,6 +130,11 @@ function App() {
         )}
 
         <main>
+          {/* 🔐 Authentication Pages */}
+          {isAuthenticated && currentView === "admin-users" && (
+  <AdminUsers onBack={() => setCurrentView("dashboard")} />
+)}
+
           {!isAuthenticated && currentView === "login" && (
             <LoginPage
               onLogin={handleLogin}
@@ -157,6 +173,7 @@ function App() {
             </Box>
           )}
 
+          {/* 🌟 Authenticated Routes */}
           {isAuthenticated && currentView === "dashboard" && (
             <Dashboard onNavigate={handleNavigation} />
           )}
