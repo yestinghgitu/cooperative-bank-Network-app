@@ -1,0 +1,40 @@
+diff --git a/backend/app.py b/backend/app.py
+index 474750f..e043f7c 100644
+--- a/backend/app.py
++++ b/backend/app.py
+@@ -12,7 +12,7 @@ from flask_cors import CORS
+ load_dotenv()
+ 
+ app = Flask(__name__, static_folder='../frontend/build', static_url_path='')
+-CORS(app, origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5173"], supports_credentials=True)
++CORS(app, origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5173", "http://65.2.63.253:5173", "https://cooperativebanknetwork.com", "https://www.cooperativebanknetwork.com"], supports_credentials=True)
+ 
+ # Configuration
+ #app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///instance/database.db')
+diff --git a/frontend_vite/src/services/api.js b/frontend_vite/src/services/api.js
+index a2173f1..30a6735 100644
+--- a/frontend_vite/src/services/api.js
++++ b/frontend_vite/src/services/api.js
+@@ -2,7 +2,7 @@ import axios from "axios";
+ import { toast } from "sonner";
+ 
+ const api = axios.create({
+-  baseURL: process.env.NODE_ENV === "production" ? "/api" : "http://localhost:5000/api",
++  baseURL: process.env.NODE_ENV === "production" ? "/api" : "https://cooperativebanknetwork.com/api",
+   headers: { "Content-Type": "application/json" },
+ });
+ 
+diff --git a/frontend_vite/vite.config.js b/frontend_vite/vite.config.js
+index 731f64c..46c8057 100644
+--- a/frontend_vite/vite.config.js
++++ b/frontend_vite/vite.config.js
+@@ -7,7 +7,7 @@ export default defineConfig({
+     port: 5173,
+     proxy: {
+       "/api": {
+-        target: "http://localhost:5000", // 👈 your backend port
++        target: "https://cooperativebanknetwork.com", // 👈 your backend port
+         changeOrigin: true,
+         secure: false,
+         rewrite: (path) => path.replace(/^\/api/, "/api"),
+

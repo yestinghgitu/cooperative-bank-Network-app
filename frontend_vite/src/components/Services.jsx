@@ -9,25 +9,45 @@ import {
   Sheet,
   Grid,
 } from "@mui/joy";
-import { Briefcase, FileText, Gavel, ShieldCheck, Banknote } from "lucide-react";
+import { UserPlus, ClipboardCheck, BookOpen, ShieldCheck, Gavel } from "lucide-react";
 import { servicesAPI } from "../services/api";
 
 const Services = ({ onBack }) => {
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Mapping of service IDs to icons and colors
+  const serviceMap = {
+    3: { icon: <UserPlus size={28} />, color: "neutral" },
+    4: { icon: <ClipboardCheck size={28} />, color: "warning" },
+    5: { icon: <BookOpen size={28} />, color: "info" },
+    6: { icon: <ShieldCheck size={28} />, color: "danger" },
+    7: { icon: <Gavel size={28} />, color: "secondary" },
+  };
+
   useEffect(() => {
     const fetchServices = async () => {
       try {
         const res = await servicesAPI.getServices();
-        // ensure we always get an array
-        setServices(Array.isArray(res?.data) ? res.data : res?.services || []);
+        if (Array.isArray(res?.data)) {
+          setServices(
+            res.data.map((svc) => ({
+              ...svc,
+              icon: serviceMap[svc.id]?.icon || <UserPlus size={28} />,
+              color: serviceMap[svc.id]?.color || "neutral",
+            }))
+          );
+        } else {
+          setServices([]);
+        }
       } catch (err) {
         console.error("Error loading services:", err);
+        setServices([]);
       } finally {
         setLoading(false);
       }
     };
+
     fetchServices();
   }, []);
 
@@ -38,6 +58,18 @@ const Services = ({ onBack }) => {
       </Box>
     );
 
+  if (services.length === 0)
+    return (
+      <Box sx={{ p: 3, textAlign: "center" }}>
+        <Typography level="h5" mb={2}>
+          No services available at the moment.
+        </Typography>
+        <Button variant="soft" color="neutral" onClick={onBack}>
+          ← Back to Dashboard
+        </Button>
+      </Box>
+    );
+
   return (
     <Box sx={{ p: 3 }}>
       <Typography level="h4" fontWeight="lg" mb={2}>
@@ -45,43 +77,7 @@ const Services = ({ onBack }) => {
       </Typography>
 
       <Grid container spacing={2}>
-        {(services.length > 0 ? services : [
-          {
-            id: 1,
-            name: "Financial Advisory",
-            description: "Expert advice on savings, investments, and loans.",
-            icon: <Briefcase size={28} />,
-            color: "primary",
-          },
-          {
-            id: 2,
-            name: "Loan Auditing",
-            description: "Detailed verification and analysis of loan accounts.",
-            icon: <FileText size={28} />,
-            color: "success",
-          },
-          {
-            id: 3,
-            name: "Legal Support",
-            description: "Legal consultation and document validation.",
-            icon: <Gavel size={28} />,
-            color: "warning",
-          },
-          {
-            id: 4,
-            name: "Insurance",
-            description: "Comprehensive coverage and premium management.",
-            icon: <ShieldCheck size={28} />,
-            color: "neutral",
-          },
-          {
-            id: 5,
-            name: "Microfinance",
-            description: "Small-scale loans for local entrepreneurs.",
-            icon: <Banknote size={28} />,
-            color: "danger",
-          },
-        ]).map((service) => (
+        {services.map((service) => (
           <Grid key={service.id} xs={12} sm={6} md={4}>
             <Card
               variant="outlined"

@@ -5,7 +5,6 @@ import {
   CardContent,
   Typography,
   Stack,
-  FormLabel,
   Input,
   Select,
   Option,
@@ -19,7 +18,7 @@ import {
 } from "@mui/joy";
 import { motion, AnimatePresence } from "framer-motion";
 import { loanAPI, uploadAPI } from "../services/api";
-import { jwtDecode } from "jwt-decode"; // npm install jwt-decode framer-motion
+import {jwtDecode} from "jwt-decode";
 
 const CreateLoan = ({ onBack }) => {
   const [form, setForm] = useState({
@@ -28,6 +27,7 @@ const CreateLoan = ({ onBack }) => {
     gender: "",
     date_of_birth: "",
     aadhar_number: "",
+    voter_id: "",
     mobile_number: "",
     email: "",
     address: "",
@@ -36,10 +36,10 @@ const CreateLoan = ({ onBack }) => {
     pincode: "",
     loan_type: "Personal",
     loan_amount: "",
-    photo_url: "",
+    status: "Due",
     society: "",
-    voter_id: "",
     remarks: "",
+    photo_url: "",
     created_by: "",
     modified_by: "",
   });
@@ -52,23 +52,23 @@ const CreateLoan = ({ onBack }) => {
   const [successModal, setSuccessModal] = useState(false);
   const [applicationId, setApplicationId] = useState("");
 
-  // Auto-fill user info from JWT
   useEffect(() => {
-    try {
-      const token = localStorage.getItem("access_token");
-      if (token) {
-        const decoded = jwtDecode(token);
-        const username = decoded?.username || decoded?.sub || "Unknown User";
-        setForm((prev) => ({
-          ...prev,
-          created_by: username,
-          modified_by: username,
-        }));
-      }
-    } catch (err) {
-      console.warn("Token decode failed:", err);
+  try {
+    const token = localStorage.getItem("access_token");
+    if (token) {
+      const decoded = jwtDecode.default(token);
+      const username = decoded?.username || decoded?.sub || "Unknown User";
+      setForm((prev) => ({
+        ...prev,
+        created_by: username,
+        modified_by: username,
+      }));
     }
-  }, []);
+  } catch (err) {
+    console.warn("Token decode failed:", err);
+  }
+}, []);
+
 
   // Validation rules
   const validateField = (name, value) => {
@@ -79,6 +79,10 @@ const CreateLoan = ({ onBack }) => {
       message = "Mobile number must be exactly 10 digits.";
     if (name === "loan_amount" && value && Number(value) <= 0)
       message = "Loan amount must be greater than zero.";
+    if (name === "voter_id" && value && !/^[a-zA-Z0-9]{6,15}$/.test(value))
+      message = "Voter ID must be alphanumeric (6-15 chars).";
+    if (name === "pincode" && value && !/^\d{6}$/.test(value))
+      message = "Pincode must be exactly 6 digits.";
     setValidation((prev) => ({ ...prev, [name]: message }));
   };
 
@@ -148,17 +152,16 @@ const CreateLoan = ({ onBack }) => {
       setApplicationId(res.data.application_id);
       setSuccessModal(true);
 
-      // Auto-close modal after 2 seconds
       setTimeout(() => setSuccessModal(false), 2000);
 
       // Reset form
-      setForm((prev) => ({
-        ...prev,
+      setForm({
         first_name: "",
         last_name: "",
         gender: "",
         date_of_birth: "",
         aadhar_number: "",
+        voter_id: "",
         mobile_number: "",
         email: "",
         address: "",
@@ -167,11 +170,13 @@ const CreateLoan = ({ onBack }) => {
         pincode: "",
         loan_type: "Personal",
         loan_amount: "",
-        photo_url: "",
+        status: "Due",
         society: "",
-        voter_id: "",
         remarks: "",
-      }));
+        photo_url: "",
+        created_by: form.created_by,
+        modified_by: form.modified_by,
+      });
       setFile(null);
       setValidation({});
     } catch (err) {
@@ -225,6 +230,7 @@ const CreateLoan = ({ onBack }) => {
               {/* Contact Info */}
               <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
                 <Input name="aadhar_number" placeholder="Aadhar Number *" value={form.aadhar_number} onChange={handleChange} required variant="soft" maxLength={12} color={validation.aadhar_number ? "danger" : "neutral"} />
+                <Input name="voter_id" placeholder="Voter ID *" value={form.voter_id} onChange={handleChange} required variant="soft" color={validation.voter_id ? "danger" : "neutral"} />
                 <Input name="mobile_number" placeholder="Mobile Number *" value={form.mobile_number} onChange={handleChange} required variant="soft" maxLength={10} color={validation.mobile_number ? "danger" : "neutral"} />
               </Stack>
 
@@ -234,7 +240,7 @@ const CreateLoan = ({ onBack }) => {
               <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
                 <Input name="city" placeholder="City" value={form.city} onChange={handleChange} variant="soft" />
                 <Input name="state" placeholder="State" value={form.state} onChange={handleChange} variant="soft" />
-                <Input name="pincode" placeholder="Pincode" value={form.pincode} onChange={handleChange} variant="soft" maxLength={6} />
+                <Input name="pincode" placeholder="Pincode" value={form.pincode} onChange={handleChange} variant="soft" maxLength={6} color={validation.pincode ? "danger" : "neutral"} />
               </Stack>
 
               <Divider sx={{ my: 1 }} />
@@ -248,11 +254,16 @@ const CreateLoan = ({ onBack }) => {
                   <Option value="Education">Education Loan</Option>
                 </Select>
                 <Input type="number" name="loan_amount" placeholder="Loan Amount (₹) *" value={form.loan_amount} onChange={handleChange} required variant="soft" color={validation.loan_amount ? "danger" : "neutral"} />
+                <Select name="status" value={form.status} onChange={(_, v) => setForm({ ...form, status: v })} variant="soft">
+                  <Option value="Due">Due</Option>
+                  <Option value="Overdue">Overdue</Option>
+                  <Option value="Litigation">Litigation</Option>
+                  <Option value="Running">Running</Option>
+                </Select>
               </Stack>
 
               <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
                 <Input name="society" placeholder="Society" value={form.society} onChange={handleChange} variant="soft" />
-                <Input name="voter_id" placeholder="Voter ID" value={form.voter_id} onChange={handleChange} variant="soft" />
               </Stack>
 
               <Textarea name="remarks" placeholder="Remarks" minRows={2} value={form.remarks} onChange={handleChange} variant="soft" />

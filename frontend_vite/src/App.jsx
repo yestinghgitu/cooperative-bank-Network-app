@@ -74,7 +74,6 @@ function App() {
 
   // ✅ Handle successful login
   const handleLogin = (userData) => {
-    // Ensure we store user with role
     if (userData && userData.role) {
       localStorage.setItem("user", JSON.stringify(userData));
     }
@@ -122,7 +121,7 @@ function App() {
         {isAuthenticated && (
           <NavBar
             userName={user?.full_name || user?.username || user?.name || "User"}
-            userRole={user?.role || "user"} // ✅ pass role
+            userRole={user?.role || "user"}
             onLogout={handleLogout}
             onNavigate={handleNavigation}
             currentView={currentView}
@@ -132,8 +131,8 @@ function App() {
         <main>
           {/* 🔐 Authentication Pages */}
           {isAuthenticated && currentView === "admin-users" && (
-  <AdminUsers onBack={() => setCurrentView("dashboard")} />
-)}
+            <AdminUsers onBack={() => setCurrentView("dashboard")} />
+          )}
 
           {!isAuthenticated && currentView === "login" && (
             <LoginPage

@@ -73,7 +73,7 @@ class LoanApplication(db.Model):
     photo_url = db.Column(db.String(200))
     loan_type = db.Column(db.String(50), default='Personal')
     loan_amount = db.Column(db.Float, default=0)
-    status = db.Column(db.String(20), default='Pending')
+    status = db.Column(db.String(20), default='Due')
 
     # New fields (as per your latest frontend table)
     society_name = db.Column(db.String(150))

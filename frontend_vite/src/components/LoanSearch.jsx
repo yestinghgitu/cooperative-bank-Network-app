@@ -33,7 +33,7 @@ const LoanSearch = ({ onBack }) => {
       const res = await loanAPI.searchApplicationsPublic(searchParams);
       console.log("📦 Raw API response:", res);
 
-      // 🧩 Normalize response: handle both { applications: [...] } and raw arrays
+      // Normalize response
       const list =
         Array.isArray(res) ? res : res?.applications || res?.data?.applications || [];
 
@@ -60,7 +60,7 @@ const LoanSearch = ({ onBack }) => {
   return (
     <Box sx={{ p: 3 }}>
       <Typography level="h4" fontWeight="lg" mb={2}>
-        Search Loan Applications
+        Search Loans
       </Typography>
 
       {/* SEARCH CARD */}
@@ -168,7 +168,6 @@ const LoanSearch = ({ onBack }) => {
           >
             <thead>
               <tr>
-                <th style={{ textAlign: "left" }}>Application ID</th>
                 <th>Full Name</th>
                 <th>Mobile Number</th>
                 <th>Loan Type</th>
@@ -177,32 +176,40 @@ const LoanSearch = ({ onBack }) => {
               </tr>
             </thead>
             <tbody>
-              {results.map((app) => (
-                <tr key={app.application_id || app.id}>
-                  <td>{app.application_id}</td>
-                  <td>
-                    {app.first_name} {app.last_name}
-                  </td>
-                  <td>{app.mobile_number}</td>
-                  <td>{app.loan_type}</td>
-                  <td>₹{app.loan_amount?.toLocaleString()}</td>
-                  <td>
-                    <Typography
-                      level="body-sm"
-                      fontWeight="lg"
-                      color={
-                        app.status === "Running"
-                          ? "success"
-                          : app.status === "Due" || app.status === "Overdue" || app.status === "Litigation"
-                          ? "warning"
-                          : "neutral"
-                      }
-                    >
-                      {app.status}
-                    </Typography>
-                  </td>
-                </tr>
-              ))}
+              {results.map((app) => {
+                // Mask mobile number except last 4 digits
+                const maskedMobile = app.mobile_number
+                  ? "xxxxxx" + app.mobile_number.slice(-4)
+                  : "";
+
+                return (
+                  <tr key={app.application_id || app.id}>
+                    <td>
+                      {app.first_name} {app.last_name}
+                    </td>
+                    <td>{maskedMobile}</td>
+                    <td>{app.loan_type}</td>
+                    <td>₹{app.loan_amount?.toLocaleString()}</td>
+                    <td>
+                      <Typography
+                        level="body-sm"
+                        fontWeight="lg"
+                        color={
+                          app.status === "Running"
+                            ? "success"
+                            : app.status === "Due"
+                            ? "warning"
+                            : ["Overdue", "Litigation"].includes(app.status)
+                            ? "danger"
+                            : "neutral"
+                        }
+                      >
+                        {app.status}
+                      </Typography>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </Table>
         </Sheet>

@@ -46,7 +46,8 @@ const Dashboard = ({ onNavigate }) => {
         "Connecting communities through shared growth, transparency, and trust.",
       bgImage:
         "https://images.unsplash.com/photo-1573164574394-20b1c7dc2db0?auto=format&fit=crop&w=1400&q=80",
-      gradient: "linear-gradient(to bottom, rgba(0,0,0,0.45), rgba(0,0,0,0.25))",
+      gradient:
+        "linear-gradient(to bottom, rgba(0,0,0,0.55), rgba(0,0,0,0.35))",
     },
     {
       title: "Financial Inclusion for All",
@@ -54,7 +55,8 @@ const Dashboard = ({ onNavigate }) => {
         "Providing accessible, member-driven banking services across the network.",
       bgImage:
         "https://images.unsplash.com/photo-1556742400-b5d06e5f0f22?auto=format&fit=crop&w=1400&q=80",
-      gradient: "linear-gradient(to bottom, rgba(0,123,94,0.45), rgba(0,123,94,0.25))",
+      gradient:
+        "linear-gradient(to bottom, rgba(0,123,94,0.55), rgba(0,123,94,0.35))",
     },
     {
       title: "Smart Loan Management",
@@ -62,7 +64,8 @@ const Dashboard = ({ onNavigate }) => {
         "Digitally streamline your cooperative’s loan processes and member tracking.",
       bgImage:
         "https://images.unsplash.com/photo-1600166892576-fb1ec6cd91b0?auto=format&fit=crop&w=1400&q=80",
-      gradient: "linear-gradient(to bottom, rgba(217,119,6,0.45), rgba(217,119,6,0.25))",
+      gradient:
+        "linear-gradient(to bottom, rgba(217,119,6,0.55), rgba(217,119,6,0.35))",
     },
     {
       title: "Secure and Transparent Operations",
@@ -70,7 +73,8 @@ const Dashboard = ({ onNavigate }) => {
         "Ensure compliance and member confidence through reliable audit systems.",
       bgImage:
         "https://images.unsplash.com/photo-1612832021610-239b8a4b5943?auto=format&fit=crop&w=1400&q=80",
-      gradient: "linear-gradient(to bottom, rgba(126,34,206,0.45), rgba(126,34,206,0.25))",
+      gradient:
+        "linear-gradient(to bottom, rgba(126,34,206,0.55), rgba(126,34,206,0.35))",
     },
   ];
 
@@ -100,7 +104,7 @@ const Dashboard = ({ onNavigate }) => {
         setStats({
           total_loans: res.data.total_loans || 0,
           pending_applications: res.data.pending_applications || 0,
-          partnered_banks: res.data.partnered_banks || 2,
+          partnered_banks: res.data.partnered_banks || 25,
         });
       }
     } catch (err) {
@@ -141,13 +145,13 @@ const Dashboard = ({ onNavigate }) => {
     <Box
       sx={{
         p: { xs: 2, md: 4 },
-        bgcolor: "background.body",
+        bgcolor: "#f5f7fa",
         minHeight: "100vh",
         display: "flex",
         flexDirection: "column",
       }}
     >
-      {/* === Hero Slider with gradient overlay === */}
+      {/* === Hero Slider === */}
       <Box
         sx={{
           position: "relative",
@@ -155,7 +159,7 @@ const Dashboard = ({ onNavigate }) => {
           borderRadius: "xl",
           overflow: "hidden",
           mb: 6,
-          boxShadow: "lg",
+          boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
         }}
       >
         <AnimatePresence mode="wait">
@@ -180,14 +184,15 @@ const Dashboard = ({ onNavigate }) => {
               textAlign: "center",
             }}
           >
-            <Box>
-              <Typography level="h3" fontWeight="xl">
-                {slides[currentSlide].title}
-              </Typography>
-              <Typography level="body-lg" sx={{ mt: 1, maxWidth: 600 }}>
-                {slides[currentSlide].subtitle}
-              </Typography>
-            </Box>
+            <Typography level="h3" fontWeight="xl" sx={{ textShadow: "2px 2px 6px rgba(0,0,0,0.6)" }}>
+              {slides[currentSlide].title}
+            </Typography>
+            <Typography
+              level="body-lg"
+              sx={{ mt: 1, maxWidth: 600, textShadow: "1px 1px 4px rgba(0,0,0,0.6)" }}
+            >
+              {slides[currentSlide].subtitle}
+            </Typography>
           </motion.div>
         </AnimatePresence>
 
@@ -208,11 +213,10 @@ const Dashboard = ({ onNavigate }) => {
               key={idx}
               onClick={() => setCurrentSlide(idx)}
               sx={{
-                width: currentSlide === idx ? 18 : 10,
+                width: currentSlide === idx ? 20 : 12,
                 height: 10,
                 borderRadius: "xl",
-                bgcolor:
-                  currentSlide === idx ? "neutral.100" : "neutral.500",
+                bgcolor: currentSlide === idx ? "#fff" : "rgba(255,255,255,0.5)",
                 cursor: "pointer",
                 transition: "all 0.3s ease",
               }}
@@ -230,7 +234,7 @@ const Dashboard = ({ onNavigate }) => {
             icon: <AccountBalance fontSize="large" />,
             color: "primary",
             badge: <Chip color="success" size="sm">Active</Chip>,
-            tooltip: "Total number of loans created across all banks",
+            tooltip: "Total loans across all banks",
           },
           {
             label: "Loans on Due",
@@ -238,7 +242,7 @@ const Dashboard = ({ onNavigate }) => {
             icon: <Assignment fontSize="large" />,
             color: "warning",
             badge: <Chip color="danger" size="sm">Attention</Chip>,
-            tooltip: "Loans pending repayment or due soon",
+            tooltip: "Loans pending repayment",
           },
           {
             label: "Partnered Banks",
@@ -246,7 +250,7 @@ const Dashboard = ({ onNavigate }) => {
             icon: <Groups fontSize="large" />,
             color: "info",
             badge: <Chip color="info" size="sm">Network</Chip>,
-            tooltip: "Number of banks partnered in the network",
+            tooltip: "Total partnered banks in the network",
           },
         ].map((card, i) => (
           <Grid key={i} xs={12} sm={6} md={4}>
@@ -257,8 +261,8 @@ const Dashboard = ({ onNavigate }) => {
                 sx={{
                   borderRadius: "lg",
                   p: 3,
-                  transition: "all 0.3s ease",
-                  "&:hover": { transform: "translateY(-5px)", boxShadow: "lg" },
+                  transition: "all 0.4s ease",
+                  "&:hover": { transform: "translateY(-6px)", boxShadow: "0 12px 28px rgba(0,0,0,0.18)" },
                 }}
               >
                 <Stack direction="row" alignItems="center" justifyContent="space-between">
@@ -290,7 +294,11 @@ const Dashboard = ({ onNavigate }) => {
                 fullWidth
                 startDecorator={item.icon}
                 onClick={() => onNavigate(item.action)}
-                sx={{ py: 1.2, fontWeight: 500, "&:hover": { transform: "translateY(-3px)", boxShadow: "md" } }}
+                sx={{
+                  py: 1.2,
+                  fontWeight: 500,
+                  "&:hover": { transform: "translateY(-3px) scale(1.02)", boxShadow: "0 6px 18px rgba(0,0,0,0.15)" },
+                }}
               >
                 {item.label}
               </Button>
@@ -313,16 +321,14 @@ const Dashboard = ({ onNavigate }) => {
                   borderRadius: "md",
                   boxShadow: "sm",
                   transition: "all 0.3s ease",
-                  "&:hover": { boxShadow: "lg", transform: "translateY(-4px)" },
+                  "&:hover": { boxShadow: "lg", transform: "translateY(-4px) scale(1.02)" },
                 }}
               >
                 <Stack direction="row" spacing={2} alignItems="center" sx={{ p: 2 }}>
                   <Box sx={{ color: `${service.color}.main` }}>{service.icon}</Box>
                   <Box>
                     <Typography level="body-md" fontWeight={600}>{service.name}</Typography>
-                    <Typography level="body-sm" color="neutral.500">
-                      {service.description}
-                    </Typography>
+                    <Typography level="body-sm" color="neutral.500">{service.description}</Typography>
                   </Box>
                 </Stack>
               </Card>
@@ -332,9 +338,9 @@ const Dashboard = ({ onNavigate }) => {
       </Box>
 
       {/* === Footer === */}
-      <Box sx={{ textAlign: "center", py: 4, mt: "auto", borderTop: "1px solid #e0e0e0" }}>
-        <Typography level="body-sm" color="neutral.500">
-          &copy; {new Date().getFullYear()} Cooperative Bank Network. All rights reserved.
+      <Box sx={{ textAlign: "center", py: 4, mt: "auto", bgcolor: "#e3f2fd", borderTop: "1px solid #ccc" }}>
+        <Typography level="body-sm" color="neutral.600">
+          &copy; {new Date().getFullYear()} Indian Cooperative Bank Network. All rights reserved.
         </Typography>
       </Box>
     </Box>

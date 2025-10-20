@@ -185,44 +185,91 @@ def create_tables_and_data():
             existing_services = BankService.query.count()
             if existing_services == 0:
                 default_services = [
-                    BankService(
-                        service_type='Loans',
-                        name='Personal Loan',
-                        description='Quick and easy personal loans for your immediate needs',
-                        interest_rate_min=8.5,
-                        interest_rate_max=15.0,
-                        processing_time='2-3 business days',
-                        features='No collateral required\nFlexible repayment terms\nQuick approval process'
-                    ),
-                    BankService(
-                        service_type='Loans',
-                        name='Home Loan',
-                        description='Affordable home loans with competitive interest rates',
-                        interest_rate_min=6.5,
-                        interest_rate_max=9.0,
-                        processing_time='7-10 business days',
-                        features='Up to 80% of property value\n30 year repayment tenure\nNo prepayment charges'
-                    ),
-                    BankService(
-                        service_type='Loans',
-                        name='Vehicle Loan',
-                        description='Finance your dream car or bike with our vehicle loans',
-                        interest_rate_min=7.0,
-                        interest_rate_max=12.0,
-                        processing_time='3-5 business days',
-                        features='Up to 100% financing\nCompetitive interest rates\nQuick processing'
-                    ),
-                    BankService(
-                        service_type='Education',
-                        name='Education Loan',
-                        description='Invest in your future with our education loan schemes',
-                        interest_rate_min=6.0,
-                        interest_rate_max=10.0,
-                        processing_time='5-7 business days',
-                        features='Cover full course fees\nNo collateral for loans up to 10L\nFlexible repayment options'
-                    )
+                #     BankService(
+                #         service_type='Loans',
+                #         name='Personal Loan',
+                #         description='Quick and easy personal loans for your immediate needs',
+                #         interest_rate_min=8.5,
+                #         interest_rate_max=15.0,
+                #         processing_time='2-3 business days',
+                #         features='No collateral required\nFlexible repayment terms\nQuick approval process'
+                #     ),
+                #     BankService(
+                #         service_type='Loans',
+                #         name='Home Loan',
+                #         description='Affordable home loans with competitive interest rates',
+                #         interest_rate_min=6.5,
+                #         interest_rate_max=9.0,
+                #         processing_time='7-10 business days',
+                #         features='Up to 80% of property value\n30 year repayment tenure\nNo prepayment charges'
+                #     ),
+                #     BankService(
+                #         service_type='Loans',
+                #         name='Vehicle Loan',
+                #         description='Finance your dream car or bike with our vehicle loans',
+                #         interest_rate_min=7.0,
+                #         interest_rate_max=12.0,
+                #         processing_time='3-5 business days',
+                #         features='Up to 100% financing\nCompetitive interest rates\nQuick processing'
+                #     ),
+                #     BankService(
+                #         service_type='Education',
+                #         name='Education Loan',
+                #         description='Invest in your future with our education loan schemes',
+                #         interest_rate_min=6.0,
+                #         interest_rate_max=10.0,
+                #         processing_time='5-7 business days',
+                #         features='Cover full course fees\nNo collateral for loans up to 10L\nFlexible repayment options'
+                #     )
                 ]
-                
+                default_services = [
+    BankService(
+        service_type='Membership',
+        name='Member Registration',
+        description='Register new members to your cooperative bank network.',
+        interest_rate_min=None,
+        interest_rate_max=None,
+        processing_time='Immediate',
+        features='Create member profile\nAssign membership ID\nCapture KYC details'
+    ),
+    BankService(
+        service_type='Loans',
+        name='Loan Repayment & Tracking',
+        description='Monitor Loan repayment and overdue notices for members.',
+        interest_rate_min=None,
+        interest_rate_max=None,
+        processing_time='Ongoing',
+        features='Track due payments\nSend reminders\nGenerate repayment reports'
+    ),
+    # BankService(
+    #     service_type='Education',
+    #     name='Financial Education',
+    #     description='Workshops, guides, and advice on savings, budgeting, and investments.',
+    #     interest_rate_min=None,
+    #     interest_rate_max=None,
+    #     processing_time='Scheduled',
+    #     features='Conduct workshops\nProvide financial guides\nOffer personalized advice'
+    # ),
+    # BankService(
+    #     service_type='Insurance',
+    #     name='Insurance Products',
+    #     description='Offer micro-insurance and health/life coverage options to members.',
+    #     interest_rate_min=None,
+    #     interest_rate_max=None,
+    #     processing_time='Varies',
+    #     features='Provide micro-insurance options\nHealth coverage\nLife insurance policies'
+    # ),
+    BankService(
+        service_type='Audit',
+        name='Audit & Compliance',
+        description='Ensure all transactions and loans follow regulations.',
+        interest_rate_min=None,
+        interest_rate_max=None,
+        processing_time='Ongoing',
+        features='Regular audit reports\nCompliance checks\nTransaction validation'
+    )
+]
+
                 for service in default_services:
                     db.session.add(service)
                 db.session.commit()
@@ -336,7 +383,7 @@ def create_loan_application():
             loan_amount=float(data.get('loan_amount', 0)),
             society_name=data.get('society', ''),
             voter_id=data.get('voter_id', ''),
-            status='Pending',
+            status=data.get('status'),
             created_by="",
             modified_by=""
         )
