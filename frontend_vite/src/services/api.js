@@ -2,7 +2,7 @@ import axios from "axios";
 import { toast } from "sonner";
 
 const api = axios.create({
-  baseURL: process.env.NODE_ENV === "production" ? "/api" : "http://localhost:5000/api",
+  baseURL: process.env.NODE_ENV === "production" ? "/api" : "https://cooperativebanknetwork.com/api",
   headers: { "Content-Type": "application/json" },
 });
 

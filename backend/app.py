@@ -12,7 +12,7 @@ from flask_cors import CORS
 load_dotenv()
 
 app = Flask(__name__, static_folder='../frontend/build', static_url_path='')
-CORS(app, origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5173"], supports_credentials=True)
+CORS(app, origins=["http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:5173", "http://65.2.63.253:5173", "https://cooperativebanknetwork.com", "https://www.cooperativebanknetwork.com"], supports_credentials=True)
 
 # Configuration
 #app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///instance/database.db')
