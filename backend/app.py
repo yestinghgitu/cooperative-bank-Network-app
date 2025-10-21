@@ -296,13 +296,16 @@ def health_check():
 def get_dashboard_stats():
     try:
         total_loans = LoanApplication.query.count()
-        pending_applications = LoanApplication.query.filter_by(status='Pending').count()
-        
+        pending_applications = LoanApplication.query.filter(LoanApplication.status != 'Running').count()
+        user_count = User.query.count()
+        partnered_banks = User.query.filter(User.role == 'admin').count()
+
         return jsonify({
             'total_loans': total_loans,
-            'active_accounts': 5892,
+            'active_accounts': user_count,
             'total_deposits': 45.2,
-            'pending_applications': pending_applications
+            'pending_applications': pending_applications,
+            'partnered_banks': partnered_banks
         }), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500

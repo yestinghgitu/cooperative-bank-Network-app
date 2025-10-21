@@ -152,13 +152,16 @@ const LoginPage = ({ onLogin, onSwitchRegister }) => {
           </Stack> */}
 
           <Typography level="body-xs" mt={2} color="neutral.500">
-            For more details contact:{" "}
+            For inquiries, please contact:{" "}
             <a href="tel:+917892611670" style={{ color: "#1a73e8" }}>
               +91 78926 11670
             </a>{" "}
             |{" "}
-            <a href="tel:+919513189111" style={{ color: "#1a73e8" }}>
+            {/* <a href="tel:+919513189111" style={{ color: "#1a73e8" }}>
               +91 95131 89111
+            </a>{" "} */}
+             <a href="mailto:b2bnetworkguide@gmail.com" style={{ color: "#1a73e8" }}>
+              b2bnetworkguide@gmail.com
             </a>{" "}
             {/* |{" "}
             <a href="tel:+919738958721" style={{ color: "#1a73e8" }}>
