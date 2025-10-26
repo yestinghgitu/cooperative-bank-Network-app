@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Box,
   Card,
@@ -15,7 +15,7 @@ import {
 } from "@mui/joy";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { authAPI } from "../services/api";
-import logo from "../assets/logo_login.png"; // ✅ use the transparent version
+import logo from "../assets/logo_login.png";
 
 const LoginPage = ({ onLogin, onSwitchRegister }) => {
   const [username, setUsername] = useState("");
@@ -23,10 +23,16 @@ const LoginPage = ({ onLogin, onSwitchRegister }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
-  const { mode } = useColorScheme(); // detect dark/light mode
+  const { mode } = useColorScheme();
+  const usernameRef = useRef(null);
+
+  // Autofocus on username input
+  useEffect(() => {
+    if (usernameRef.current) usernameRef.current.focus();
+  }, []);
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e.preventDefault(); // ✅ Prevent full page reload
     setErrorMsg("");
 
     if (!username.trim() || !password) {
@@ -37,13 +43,22 @@ const LoginPage = ({ onLogin, onSwitchRegister }) => {
     setLoading(true);
     try {
       const res = await authAPI.login({ username, password });
-      const { access_token, user } = res.data;
-      if (!access_token) throw new Error("Invalid login response");
+      const { access_token, user } = res.data || {};
+
+      if (!access_token || !user) {
+        throw new Error("Invalid login response. Please try again.");
+      }
+
       localStorage.setItem("authToken", access_token);
       localStorage.setItem("user", JSON.stringify(user));
       onLogin(user);
     } catch (err) {
-      setErrorMsg(err.response?.data?.error || err.message || "Login failed");
+      console.error("Login failed:", err);
+      const serverError =
+        err.response?.data?.error ||
+        err.response?.data?.message ||
+        "Invalid username or password.";
+      setErrorMsg(serverError);
     } finally {
       setLoading(false);
     }
@@ -100,7 +115,7 @@ const LoginPage = ({ onLogin, onSwitchRegister }) => {
           )}
 
           {/* Login Form */}
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} noValidate autoComplete="off">
             <Stack spacing={1.5}>
               <Box>
                 <FormLabel>Username</FormLabel>
@@ -110,6 +125,7 @@ const LoginPage = ({ onLogin, onSwitchRegister }) => {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   fullWidth
+                  slotProps={{ input: { ref: usernameRef } }} // ✅ fixed ref
                 />
               </Box>
 
@@ -145,28 +161,19 @@ const LoginPage = ({ onLogin, onSwitchRegister }) => {
             </Stack>
           </form>
 
-          {/* <Stack direction="row" justifyContent="center" mt={2}>
-            <Button variant="plain" onClick={onSwitchRegister}>
-              Don’t have an account? Sign up
-            </Button>
-          </Stack> */}
-
-          <Typography level="body-xs" mt={2} color="neutral.500">
-            For inquiries, please contact:{" "}
+          <Typography level="body-xs" mt={1.5} color="neutral.500">
+            For inquiries, contact:{" "}
             <a href="tel:+917892611670" style={{ color: "#1a73e8" }}>
               +91 78926 11670
             </a>{" "}
             |{" "}
-            {/* <a href="tel:+919513189111" style={{ color: "#1a73e8" }}>
-              +91 95131 89111
-            </a>{" "} */}
-             <a href="mailto:b2bnetworkguide@gmail.com" style={{ color: "#1a73e8" }}>
-              b2bnetworkguide@gmail.com
+            <a href="tel:+919480595927" style={{ color: "#1a73e8" }}>
+              +91 94805 95927
             </a>{" "}
-            {/* |{" "}
-            <a href="tel:+919738958721" style={{ color: "#1a73e8" }}>
-              +91 97389 58721
-            </a> */}
+            |{" "}
+            <a href="mailto:b2bnetworkguide@gmail.com" style={{ color: "#1a73e8" }}>
+              b2bnetworkguide@gmail.com
+            </a>
           </Typography>
         </CardContent>
       </Card>

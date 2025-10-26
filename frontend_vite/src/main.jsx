@@ -5,6 +5,9 @@ import CssBaseline from "@mui/joy/CssBaseline";
 import { Toaster } from "sonner";
 import App from "./App";
 
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+
 /**
  * Custom wrapper so Sonner follows Joy UI’s current color scheme.
  */
@@ -33,8 +36,10 @@ ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <CssVarsProvider>
       <CssBaseline />
-      <App />
-      {/* ✅ Sonner now auto-syncs with Joy UI color mode */}
+      {/* ✅ Wrap App with LocalizationProvider for MUI X DatePickers */}
+      <LocalizationProvider dateAdapter={AdapterDayjs}>
+        <App />
+      </LocalizationProvider>
       <ThemedToaster />
     </CssVarsProvider>
   </React.StrictMode>

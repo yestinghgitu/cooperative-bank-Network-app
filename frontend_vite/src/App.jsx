@@ -1,20 +1,24 @@
-// src/App.jsx
 import React, { useState, useEffect } from "react";
 import { CssVarsProvider, extendTheme } from "@mui/joy/styles";
 import CssBaseline from "@mui/joy/CssBaseline";
 import Box from "@mui/joy/Box";
 import Typography from "@mui/joy/Typography";
+
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+
 import LoginPage from "./components/LoginPage";
 import Register from "./components/Register";
 import Dashboard from "./components/Dashboard";
 import CreateLoan from "./components/CreateLoan";
-import ViewApplications from "./components/ViewApplications";
+import ViewApplications from "./components/ViewLoans";
 import Services from "./components/Services";
 import LoanSearch from "./components/LoanSearch";
 import LoanStatusCheck from "./components/LoanStatusCheck";
+import UserManagement from "./components/UserManagement";
+import SocietyBranchesManagement from "./components/SocietyBranchesManagement";
+
 import NavBar from "./components/NavBar";
 import { authAPI } from "./services/api";
-import AdminUsers from "./components/AdminUsers";
 
 const theme = extendTheme({
   colorSchemes: {
@@ -44,11 +48,9 @@ const theme = extendTheme({
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [currentView, setCurrentView] = useState("login");
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // ✅ Check for existing authentication on app start
   useEffect(() => {
     const checkAuth = async () => {
       const token = localStorage.getItem("authToken");
@@ -60,11 +62,9 @@ function App() {
           const parsedUser = JSON.parse(userData);
           setUser(parsedUser);
           setIsAuthenticated(true);
-          setCurrentView("dashboard");
         } catch {
           localStorage.clear();
           setIsAuthenticated(false);
-          setCurrentView("login");
         }
       }
       setLoading(false);
@@ -72,39 +72,24 @@ function App() {
     checkAuth();
   }, []);
 
-  // ✅ Handle successful login
   const handleLogin = (userData) => {
-    if (userData && userData.role) {
-      localStorage.setItem("user", JSON.stringify(userData));
-    }
+    if (userData && userData.role) localStorage.setItem("user", JSON.stringify(userData));
     setUser(userData);
     setIsAuthenticated(true);
-    setCurrentView("dashboard");
   };
 
-  // ✅ Logout
   const handleLogout = () => {
     localStorage.clear();
     setUser(null);
     setIsAuthenticated(false);
-    setCurrentView("login");
   };
 
-  // ✅ Navigation
-  const handleNavigation = (view) => setCurrentView(view);
-
-  // ✅ Loading screen
   if (loading) {
     return (
       <CssVarsProvider theme={theme}>
         <CssBaseline />
         <Box
-          sx={{
-            display: "flex",
-            height: "100vh",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
+          sx={{ display: "flex", height: "100vh", alignItems: "center", justifyContent: "center" }}
         >
           <Typography level="title-md" color="neutral">
             Loading...
@@ -117,91 +102,55 @@ function App() {
   return (
     <CssVarsProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ minHeight: "100vh", bgcolor: "background.body" }}>
-        {isAuthenticated && (
-          <NavBar
-            userName={user?.full_name || user?.username || user?.name || "User"}
-            userRole={user?.role || "user"}
-            onLogout={handleLogout}
-            onNavigate={handleNavigation}
-            currentView={currentView}
-          />
-        )}
-
-        <main>
-          {/* 🔐 Authentication Pages */}
-          {isAuthenticated && currentView === "admin-users" && (
-            <AdminUsers onBack={() => setCurrentView("dashboard")} />
-          )}
-
-          {!isAuthenticated && currentView === "login" && (
-            <LoginPage
-              onLogin={handleLogin}
-              onSwitchRegister={() => setCurrentView("register")}
-              onPublicSearch={() => setCurrentView("status-check")}
-              onStatusCheck={() => setCurrentView("status-check")}
+      <Router>
+        <Box sx={{ minHeight: "100vh", bgcolor: "background.body" }}>
+          {isAuthenticated && (
+            <NavBar
+              userName={user?.full_name || user?.username || user?.name || "User"}
+              userRole={user?.role || "user"}
+              onLogout={handleLogout}
+              currentView=""
             />
           )}
 
-          {!isAuthenticated && currentView === "register" && (
-            <Register
-              onBack={() => setCurrentView("login")}
-              onSwitchToLogin={() => setCurrentView("login")}
-            />
-          )}
+          <main>
+            <Routes>
+              {/* Public Routes */}
+              <Route
+                path="/login"
+                element={
+                  isAuthenticated ? <Navigate to="/dashboard" /> : <LoginPage onLogin={handleLogin} />
+                }
+              />
+              <Route
+                path="/register"
+                element={isAuthenticated ? <Navigate to="/dashboard" /> : <Register />}
+              />
+              <Route path="/status-check" element={<LoanStatusCheck />} />
 
-          {!isAuthenticated && currentView === "status-check" && (
-            <Box>
-              <Box
-                component="button"
-                onClick={() => setCurrentView("login")}
-                sx={{
-                  m: 2,
-                  px: 3,
-                  py: 1,
-                  borderRadius: "md",
-                  border: "none",
-                  bgcolor: "neutral.softBg",
-                  cursor: "pointer",
-                  "&:hover": { bgcolor: "neutral.plainHoverBg" },
-                }}
-              >
-                ← Back to Login
-              </Box>
-              <LoanStatusCheck />
-            </Box>
-          )}
+              {/* Private Routes */}
+              {isAuthenticated && (
+                <>
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/create-loan" element={<CreateLoan />} />
+                  <Route path="/view-loans" element={<ViewApplications />} />
+                  <Route path="/services" element={<Services />} />
+                  <Route path="/loan-search" element={<LoanSearch />} />
+                  <Route path="/search" element={<LoanSearch />} />
+                  <Route path="/admin-users" element={<UserManagement />} />
+                  <Route path="/manage-banks" element={<SocietyBranchesManagement />} />
+                </>
+              )}
 
-          {/* 🌟 Authenticated Routes */}
-          {isAuthenticated && currentView === "dashboard" && (
-            <Dashboard onNavigate={handleNavigation} />
-          )}
-
-          {isAuthenticated && currentView === "create-loan" && (
-            <CreateLoan onBack={() => setCurrentView("dashboard")} />
-          )}
-
-          {isAuthenticated && currentView === "view-applications" && (
-            <ViewApplications onBack={() => setCurrentView("dashboard")} />
-          )}
-
-          {isAuthenticated && currentView === "services" && (
-            <Services onBack={() => setCurrentView("dashboard")} />
-          )}
-
-          {isAuthenticated && currentView === "private-search" && (
-            <LoanSearch onBack={() => setCurrentView("dashboard")} />
-          )}
-
-          {isAuthenticated && currentView === "status-check" && (
-            <LoanStatusCheck />
-          )}
-
-          {isAuthenticated && currentView === "loan-search" && (
-            <LoanSearch onBack={() => setCurrentView("dashboard")} />
-          )}
-        </main>
-      </Box>
+              {/* Default redirect */}
+              <Route
+                path="*"
+                element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />}
+              />
+            </Routes>
+          </main>
+        </Box>
+      </Router>
     </CssVarsProvider>
   );
 }

@@ -13,8 +13,9 @@ import {
 } from "@mui/joy";
 import { loanAPI } from "../services/api";
 import { Search, RotateCcw } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
-const LoanSearch = ({ onBack }) => {
+const LoanSearch = ({  }) => {
   const [searchParams, setSearchParams] = useState({
     aadharNumber: "",
     mobileNumber: "",
@@ -23,20 +24,19 @@ const LoanSearch = ({ onBack }) => {
   });
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
-
+  const navigate = useNavigate();
   const handleChange = (e) =>
     setSearchParams({ ...searchParams, [e.target.name]: e.target.value });
 
   const handleSearch = async () => {
     setLoading(true);
     try {
-      const res = await loanAPI.searchApplicationsPublic(searchParams);
-      console.log("📦 Raw API response:", res);
+      const res = await loanAPI.searchApplications(searchParams);
+      console.log("Raw API response:", res);
 
       // Normalize response
       const list =
-        Array.isArray(res) ? res : res?.applications || res?.data?.applications || [];
-
+        Array.isArray(res) ? res : res?.applications || res?.data?.data || [];
       console.log(" Normalized list:", list);
       setResults(Array.isArray(list) ? list : []);
     } catch (err) {
@@ -60,7 +60,7 @@ const LoanSearch = ({ onBack }) => {
   return (
     <Box sx={{ p: 3 }}>
       <Typography level="h4" fontWeight="lg" mb={2}>
-        Search Loans
+        🏦 Search Loans
       </Typography>
 
       {/* SEARCH CARD */}
@@ -127,7 +127,7 @@ const LoanSearch = ({ onBack }) => {
               >
                 Reset
               </Button>
-              <Button variant="plain" color="neutral" onClick={onBack}>
+              <Button variant="plain" color="neutral" onClick={() => navigate("/dashboard")}>
                 Back
               </Button>
             </Stack>
@@ -172,6 +172,8 @@ const LoanSearch = ({ onBack }) => {
                 <th>Mobile Number</th>
                 <th>Loan Type</th>
                 <th>Loan Amount</th>
+                <th>Society</th>
+                <th>Branch</th>
                 <th>Status</th>
               </tr>
             </thead>
@@ -190,6 +192,8 @@ const LoanSearch = ({ onBack }) => {
                     <td>{maskedMobile}</td>
                     <td>{app.loan_type}</td>
                     <td>₹{app.loan_amount?.toLocaleString()}</td>
+                    <td>{app.society_name?.toLocaleString()}</td>
+                    <td>{app.branch_name?.toLocaleString()}</td>
                     <td>
                       <Typography
                         level="body-sm"
@@ -220,7 +224,7 @@ const LoanSearch = ({ onBack }) => {
           color="neutral"
           sx={{ mt: 3 }}
         >
-          No applications found.
+          No loans found.
         </Typography>
       )}
     </Box>
