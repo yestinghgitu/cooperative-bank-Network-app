@@ -197,4 +197,39 @@ export const superAdminAPI = {
     safeRequest(api.delete(`/admin/branches/${id}`), "Branch deleted successfully"),
 };
 
+// ===================================================
+// =============== CONTACT MESSAGE APIS ==============
+// ===================================================
+export const contactAPI = {
+  // Public form submission
+  sendMessage: (data) =>
+    safeRequest(
+      api.post("/contact", data),
+      "Message sent successfully",
+      "Failed to send message"
+    ),
+
+  // Admin / Manager: view all contact messages
+  getMessages: ({ page = 1, limit = 10, search = "" } = {}) =>
+    safeRequest(
+      api.get("/contact", { params: { page, limit, search } }),
+      null,
+      "Failed to fetch messages"
+    ),
+
+  // Admin / Manager: update message status
+  updateStatus: (id, status) =>
+    safeRequest(
+      api.put(`/contact/${id}/status`, { status }),
+      `Marked as ${status}`
+    ),
+
+  // Admin: delete a contact message
+  deleteMessage: (id) =>
+    safeRequest(
+      api.delete(`/contact/${id}`),
+      ""
+    ),
+};
+
 export default api;

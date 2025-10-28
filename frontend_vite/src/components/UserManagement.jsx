@@ -401,91 +401,112 @@ useEffect(() => {
       </Box>
 
       <Card variant="outlined" sx={{ p: 2 }}>
-        <Sheet variant="soft">
-          <Box sx={{ maxHeight: "500px", overflowY: "auto" }}>
-            <Table hoverRow stickyHeader>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Full Name</th>
-                  <th>Username</th>
-                  <th>Email</th>
-                  <th>Society</th>
-                  <th>Branch</th>
-                  <th>Role</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((u) => (
-                  <tr key={u.id}>
-                    <td>{u.id}</td>
-                    <td>{u.full_name}</td>
-                    <td>{u.username}</td>
-                    <td>{u.email}</td>
-                    <td>{u.bank_name}</td>
-                    <td>{u.branch_name}</td>
-                    <td>{u.role}</td>
-                    <td>
-                      <Stack direction="row" spacing={0.5}>
-                        {(currentUser.role === "admin" ||
-                          (currentUser.role === "manager" &&
-                            u.bank_name === currentUser.bank_name &&
-                            u.branch_name === currentUser.branch_name)) && (
-                          <>
-                            <IconButton
-                              size="sm"
-                              variant="outlined"
-                              color="primary"
-                              onClick={() => handleEdit(u)}
-                            >
-                              <Pencil size={16} />
-                            </IconButton>
-                            <IconButton
-                              size="sm"
-                              variant="outlined"
-                              color="danger"
-                              onClick={() => handleDelete(u.id)}
-                            >
-                              <Trash2 size={16} />
-                            </IconButton>
-                            <IconButton
-                              size="sm"
-                              variant="outlined"
-                              color="warning"
-                              onClick={() => setResetUser(u)}
-                            >
-                              <Key size={16} />
-                            </IconButton>
-                          </>
-                        )}
-                      </Stack>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          </Box>
+  <Sheet variant="soft">
+    <Box sx={{ overflowX: "auto" }}>
+      <Table
+        hoverRow
+        stickyHeader
+        sx={{
+          minWidth: 900, // Prevents columns from collapsing too much
+          "& th, & td": {
+            whiteSpace: "nowrap",
+            textOverflow: "ellipsis",
+            overflow: "hidden",
+          },
+          "& td.email-cell": {
+            maxWidth: { xs: 160, sm: 240, md: 300 },
+            whiteSpace: "normal", // Allow wrapping
+            wordBreak: "break-all",
+          },
+          "& td, & th": {
+            px: 1.5,
+            py: 1,
+            fontSize: { xs: "0.75rem", sm: "0.875rem" },
+          },
+        }}
+      >
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Full Name</th>
+            <th>Username</th>
+            <th>Email</th>
+            <th>Society</th>
+            <th>Branch</th>
+            <th>Role</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {users.map((u) => (
+            <tr key={u.id}>
+              <td>{u.id}</td>
+              <td>{u.full_name}</td>
+              <td>{u.username}</td>
+              <td className="email-cell">{u.email}</td>
+              <td>{u.bank_name}</td>
+              <td>{u.branch_name}</td>
+              <td>{u.role}</td>
+              <td>
+                <Stack direction="row" spacing={0.5}>
+                  {(currentUser.role === "admin" ||
+                    (currentUser.role === "manager" &&
+                      u.bank_name === currentUser.bank_name &&
+                      u.branch_name === currentUser.branch_name)) && (
+                    <>
+                      <IconButton
+                        size="sm"
+                        variant="outlined"
+                        color="primary"
+                        onClick={() => handleEdit(u)}
+                      >
+                        <Pencil size={16} />
+                      </IconButton>
+                      <IconButton
+                        size="sm"
+                        variant="outlined"
+                        color="danger"
+                        onClick={() => handleDelete(u.id)}
+                      >
+                        <Trash2 size={16} />
+                      </IconButton>
+                      <IconButton
+                        size="sm"
+                        variant="outlined"
+                        color="warning"
+                        onClick={() => setResetUser(u)}
+                      >
+                        <Key size={16} />
+                      </IconButton>
+                    </>
+                  )}
+                </Stack>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </Table>
+    </Box>
 
-          <Stack direction="row" spacing={1} justifyContent="flex-end" mt={2}>
-            <Button
-              disabled={page <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-            >
-              Previous
-            </Button>
-            <Typography level="body2" sx={{ alignSelf: "center" }}>
-              Page {page} of {totalPages}
-            </Typography>
-            <Button
-              disabled={page >= totalPages}
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            >
-              Next
-            </Button>
-          </Stack>
-        </Sheet>
-      </Card>
+    <Stack direction="row" spacing={1} justifyContent="flex-end" mt={2}>
+      <Button
+        disabled={page <= 1}
+        onClick={() => setPage((p) => Math.max(1, p - 1))}
+      >
+        Previous
+      </Button>
+      <Typography level="body2" sx={{ alignSelf: "center" }}>
+        Page {page} of {totalPages}
+      </Typography>
+      <Button
+        disabled={page >= totalPages}
+        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+      >
+        Next
+      </Button>
+    </Stack>
+  </Sheet>
+</Card>
 
       {/* ADD USER MODAL */}
       {addUser && (

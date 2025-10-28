@@ -12,6 +12,11 @@ from functools import wraps
 import os
 from dotenv import load_dotenv
 from math import ceil
+from models import ContactMessage
+
+from flask_mail import Message
+from models import ContactMessage
+from flask_mail import Mail
 
 # ==========================
 # Initialization
@@ -42,6 +47,17 @@ app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif'}
+
+
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = 'your_email@gmail.com'  # Admin email
+app.config['MAIL_PASSWORD'] = 'your_app_password'     # Use App Password, not your login
+app.config['MAIL_DEFAULT_SENDER'] = ('Cooperative Bank Network', 'your_email@gmail.com')
+
+mail = Mail(app)
+
 
 # ==========================
 # Initialize extensions
@@ -483,7 +499,7 @@ def create_bank(current_user):
     data = request.get_json() or {}
 
     # enforce required fields that DB schema expects (avoid NOT NULL errors)
-    required_fields = ['bank_name', 'registration_number', 'head_office_address', 'district', 'state']
+    required_fields = ['bank_name', 'head_office_address', 'district', 'state']
     missing = [f for f in required_fields if not data.get(f)]
     if missing:
         return jsonify({'error': f"Missing required fields: {', '.join(missing)}"}), 400
@@ -941,6 +957,136 @@ def serve_react_app(path):
     if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
         return send_from_directory(app.static_folder, path)
     return send_from_directory(app.static_folder, 'index.html')
+
+
+# ==========================
+# Contact Us Messages
+# ==========================
+
+@app.route('/api/contact', methods=['POST'])
+def create_contact_message():
+    """
+    Public endpoint for website visitors to send messages.
+    Saves to database and emails admin.
+    """
+    data = request.get_json() or {}
+    name = data.get('name')
+    email = data.get('email')
+    message = data.get('message')
+
+    if not name or not email or not message:
+        return jsonify({'error': 'Name, email, and message are required.'}), 400
+
+    try:
+        # Save message
+        contact = ContactMessage(name=name, email=email, message=message)
+        db.session.add(contact)
+        db.session.commit()
+
+        # Send email notification to admin
+        try:
+            admin_email = "admin@cooperativebanknetwork.com"
+            msg = Message(
+                subject=f"New Contact Message from {name}",
+                recipients=[admin_email],
+                body=(
+                    f"You have received a new contact message:\n\n"
+                    f"Name: {name}\n"
+                    f"Email: {email}\n"
+                    f"Message:\n{message}\n\n"
+                    f"View all messages in your admin dashboard."
+                )
+            )
+            mail.send(msg)
+            # Send acknowledgment to user
+            ack = Message(
+                subject="Thank you for contacting Cooperative Bank Network",
+                recipients=[email],
+                body=(
+                    f"Dear {name},\n\n"
+                    "Thank you for reaching out to the Cooperative Bank Network. "
+                    "We have received your message and will get back to you soon.\n\n"
+                    "Warm regards,\n"
+                    "Cooperative Bank Network Team"
+                )
+            )
+            mail.send(ack)
+
+            app.logger.info(f"Contact email sent to {admin_email}")
+        except Exception as e:
+            app.logger.error(f"Failed to send contact email: {e}")
+
+        return jsonify({'message': 'Message received successfully.'}), 201
+
+    except Exception as e:
+        db.session.rollback()
+        app.logger.exception("Error saving contact message")
+        return jsonify({'error': 'Failed to save message', 'details': str(e)}), 500
+
+
+@app.route('/api/contact', methods=['GET'])
+@role_required('admin', 'manager')
+def list_contact_messages(current_user):
+    """
+    Admin/Manager endpoint to view all contact messages.
+    Supports pagination and search.
+    """
+    page = int(request.args.get('page', 1))
+    limit = int(request.args.get('limit', 20))
+    search = request.args.get('search', '')
+
+    query = ContactMessage.query
+    if search:
+        query = query.filter(
+            (ContactMessage.name.ilike(f'%{search}%')) |
+            (ContactMessage.email.ilike(f'%{search}%')) |
+            (ContactMessage.message.ilike(f'%{search}%'))
+        )
+
+    messages, total = paginate_query(query.order_by(ContactMessage.created_at.desc()), page, limit)
+    return jsonify({
+        'data': [m.to_dict() for m in messages],
+        'page': page,
+        'limit': limit,
+        'total': total,
+        'pages': ceil(total / limit)
+    }), 200
+
+
+@app.route('/api/contact/<int:message_id>/status', methods=['PUT'])
+@role_required('admin', 'manager')
+def update_contact_status(current_user, message_id):
+    """
+    Mark message as Read or Unread (admin or manager only)
+    """
+    data = request.get_json() or {}
+    status = data.get('status')
+    if status not in ['Read', 'Unread']:
+        return jsonify({'error': 'Status must be either Read or Unread'}), 400
+
+    message = ContactMessage.query.get(message_id)
+    if not message:
+        return jsonify({'error': 'Message not found'}), 404
+
+    message.status = status
+    db.session.commit()
+    return jsonify({'message': f'Status updated to {status}', 'data': message.to_dict()}), 200
+
+
+@app.route('/api/contact/<int:message_id>', methods=['DELETE'])
+@role_required('admin',)
+def delete_contact_message(current_user, message_id):
+    """
+    Admin-only: delete contact messages
+    """
+    message = ContactMessage.query.get(message_id)
+    if not message:
+        return jsonify({'error': 'Message not found'}), 404
+
+    db.session.delete(message)
+    db.session.commit()
+    return jsonify({'message': 'Message deleted successfully'}), 200
+
 
 # ==========================
 # Run Server

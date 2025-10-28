@@ -147,8 +147,8 @@ const SocietyBranchesManagement = () => {
 
   // ---------------- BANK HANDLERS ----------------
   const handleAddBank = async () => {
-    if (!bankForm.bank_name || !bankForm.registration_number)
-      return toast.error("Society name and registration number are required");
+    if (!bankForm.bank_name || !bankForm.head_office_address || !bankForm.district || !bankForm.state)
+      return toast.error("Society name and Head Office Address, District, State  are required");
     try {
       await superAdminAPI.createBank(bankForm);
       setAddBank(false);
@@ -369,140 +369,220 @@ const renderFormFields = (fields, state, setState) => (
       </Box>
 
       {/* -------- SOCIETY TABLE -------- */}
-      <Card variant="outlined" sx={{ mb: 4, overflowX: "auto" }}>
-        <Typography level="h6" sx={{ p: 2 }}>
-          Societies
-        </Typography>
-        <Divider />
-        <Sheet variant="soft" sx={{ p: 2 }}>
-          <Table hoverRow stickyHeader>
-            <thead>
-              <tr>
-                {bankFields.map((f) => (
-                  <th key={f.key}>{f.label}</th>
-                ))}
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {banks.length ? (
-                banks.map((b) => (
-                  <tr key={b.id}>
-                    {bankFields.map((f) => (
-                      <td key={f.key}>
-                        {f.key === "established_date" && b[f.key]
-                          ? dayjs(b[f.key]).format("DD/MM/YYYY")
-                          : b[f.key] || "-"}
-                      </td>
-                    ))}
-                    <td>
-                      <Stack direction="row" spacing={1}>
-                        <IconButton size="sm" onClick={() => setEditBank(b)}>
-                          <Pencil size={16} />
-                        </IconButton>
-                        <IconButton
-                          size="sm"
-                          color="danger"
-                          onClick={() => handleDeleteBank(b.id)}
-                        >
-                          <Trash2 size={16} />
-                        </IconButton>
-                      </Stack>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={bankFields.length + 1} style={{ textAlign: "center" }}>
-                    No Societies Found
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </Table>
+<Card variant="outlined" sx={{ mb: 4, overflowX: "auto" }}>
+  <Typography level="h6" sx={{ p: 2 }}>
+    Societies
+  </Typography>
+  <Divider />
+  <Sheet
+    variant="soft"
+    sx={{
+      p: 2,
+      overflowX: "auto",
+      "& table": {
+        minWidth: "900px",
+        width: "100%",
+        tableLayout: "auto",
+      },
+      "& th, & td": {
+        whiteSpace: "nowrap",
+        textAlign: "left",
+        padding: "8px 12px",
+      },
+      "& td": {
+        wordBreak: "break-word",
+        maxWidth: { xs: 120, sm: "none" },
+      },
 
-          {/* Pagination */}
-          <Stack direction="row" spacing={1} justifyContent="flex-end" mt={2}>
-            <Button disabled={bankPage <= 1} onClick={() => setBankPage((p) => p - 1)}>
-              Previous
-            </Button>
-            <Typography>Page {bankPage} of {totalBankPages}</Typography>
-            <Button
-              disabled={bankPage >= totalBankPages}
-              onClick={() => setBankPage((p) => p + 1)}
-            >
-              Next
-            </Button>
-          </Stack>
-        </Sheet>
-      </Card>
+      // ✅ Fix: Society Name column (first column)
+      "& th:nth-of-type(1), & td:nth-of-type(1)": {
+        whiteSpace: "normal",
+        wordBreak: "break-word",
+        minWidth: { xs: "160px", sm: "200px", md: "240px" },
+        maxWidth: { xs: "240px", sm: "280px", md: "320px" },
+      },
 
-      {/* -------- BRANCH TABLE -------- */}
-      <Card variant="outlined" sx={{ overflowX: "auto" }}>
-        <Typography level="h6" sx={{ p: 2 }}>
-          Branches
-        </Typography>
-        <Divider />
-        <Sheet variant="soft" sx={{ p: 2 }}>
-          <Table hoverRow stickyHeader>
-            <thead>
-              <tr>
+      // Head Office Address column
+      "& th:nth-of-type(6), & td:nth-of-type(6)": {
+        minWidth: "200px",
+      },
+
+      // Smaller font on mobile
+      "@media (max-width: 600px)": {
+        "& th, & td": { fontSize: "0.85rem", padding: "6px 8px" },
+      },
+    }}
+  >
+    <Table hoverRow stickyHeader>
+      <thead>
+        <tr>
+          {bankFields.map((f) => (
+            <th key={f.key}>{f.label}</th>
+          ))}
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {banks.length ? (
+          banks.map((b) => (
+            <tr key={b.id}>
+              {bankFields.map((f) => (
+                <td key={f.key}>
+                  {f.key === "established_date" && b[f.key]
+                    ? dayjs(b[f.key]).format("DD/MM/YYYY")
+                    : b[f.key] || "-"}
+                </td>
+              ))}
+              <td>
+                <Stack direction="row" spacing={1}>
+                  <IconButton size="sm" onClick={() => setEditBank(b)}>
+                    <Pencil size={16} />
+                  </IconButton>
+                  <IconButton
+                    size="sm"
+                    color="danger"
+                    onClick={() => handleDeleteBank(b.id)}
+                  >
+                    <Trash2 size={16} />
+                  </IconButton>
+                </Stack>
+              </td>
+            </tr>
+          ))
+        ) : (
+          <tr>
+            <td colSpan={bankFields.length + 1} style={{ textAlign: "center" }}>
+              No Societies Found
+            </td>
+          </tr>
+        )}
+      </tbody>
+    </Table>
+
+    {/* Pagination */}
+    <Stack direction="row" spacing={1} justifyContent="flex-end" mt={2}>
+      <Button disabled={bankPage <= 1} onClick={() => setBankPage((p) => p - 1)}>
+        Previous
+      </Button>
+      <Typography>
+        Page {bankPage} of {totalBankPages}
+      </Typography>
+      <Button
+        disabled={bankPage >= totalBankPages}
+        onClick={() => setBankPage((p) => p + 1)}
+      >
+        Next
+      </Button>
+    </Stack>
+  </Sheet>
+</Card>
+
+{/* -------- BRANCH TABLE -------- */}
+<Card variant="outlined" sx={{ overflowX: "auto" }}>
+  <Typography level="h6" sx={{ p: 2 }}>
+    Branches
+  </Typography>
+  <Divider />
+  <Sheet
+    variant="soft"
+    sx={{
+      p: 2,
+      overflowX: "auto",
+      "& table": {
+        minWidth: "950px",
+        width: "100%",
+        tableLayout: "auto",
+      },
+      "& th, & td": {
+        whiteSpace: "nowrap",
+        textAlign: "left",
+        padding: "8px 12px",
+      },
+      "& td": {
+        wordBreak: "break-word",
+        maxWidth: { xs: 120, sm: "none" },
+      },
+
+      // ✅ Fix: Branch Name column (first column)
+      "& th:nth-of-type(1), & td:nth-of-type(1)": {
+        whiteSpace: "normal",
+        wordBreak: "break-word",
+        minWidth: { xs: "160px", sm: "200px", md: "240px" },
+        maxWidth: { xs: "240px", sm: "280px", md: "320px" },
+      },
+
+      // Address column
+      "& th:nth-of-type(4), & td:nth-of-type(4)": {
+        minWidth: "220px",
+      },
+
+      "@media (max-width: 600px)": {
+        "& th, & td": { fontSize: "0.85rem", padding: "6px 8px" },
+      },
+    }}
+  >
+    <Table hoverRow stickyHeader>
+      <thead>
+        <tr>
+          {branchFields.map((f) => (
+            <th key={f.key}>{f.label}</th>
+          ))}
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {Object.entries(branchesByBank).length ? (
+          Object.entries(branchesByBank).map(([bank, branchList]) =>
+            branchList.map((br) => (
+              <tr key={br.id}>
                 {branchFields.map((f) => (
-                  <th key={f.key}>{f.label}</th>
+                  <td key={f.key}>{br[f.key] || "-"}</td>
                 ))}
-                <th>Actions</th>
+                <td>
+                  <Stack direction="row" spacing={1}>
+                    <IconButton size="sm" onClick={() => setEditBranch(br)}>
+                      <Pencil size={16} />
+                    </IconButton>
+                    <IconButton
+                      size="sm"
+                      color="danger"
+                      onClick={() => handleDeleteBranch(br.id)}
+                    >
+                      <Trash2 size={16} />
+                    </IconButton>
+                  </Stack>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {Object.entries(branchesByBank).length ? (
-                Object.entries(branchesByBank).map(([bank, branchList]) =>
-                  branchList.map((br) => (
-                    <tr key={br.id}>
-                      {branchFields.map((f) => (
-                        <td key={f.key}>{br[f.key] || "-"}</td>
-                      ))}
-                      <td>
-                        <Stack direction="row" spacing={1}>
-                          <IconButton size="sm" onClick={() => setEditBranch(br)}>
-                            <Pencil size={16} />
-                          </IconButton>
-                          <IconButton
-                            size="sm"
-                            color="danger"
-                            onClick={() => handleDeleteBranch(br.id)}
-                          >
-                            <Trash2 size={16} />
-                          </IconButton>
-                        </Stack>
-                      </td>
-                    </tr>
-                  ))
-                )
-              ) : (
-                <tr>
-                  <td colSpan={branchFields.length + 1} style={{ textAlign: "center" }}>
-                    No Branches Found
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </Table>
+            ))
+          )
+        ) : (
+          <tr>
+            <td colSpan={branchFields.length + 1} style={{ textAlign: "center" }}>
+              No Branches Found
+            </td>
+          </tr>
+        )}
+      </tbody>
+    </Table>
 
-          {/* Pagination */}
-          <Stack direction="row" spacing={1} justifyContent="flex-end" mt={2}>
-            <Button disabled={branchPage <= 1} onClick={() => setBranchPage((p) => p - 1)}>
-              Previous
-            </Button>
-            <Typography>Page {branchPage} of {totalBranchPages}</Typography>
-            <Button
-              disabled={branchPage >= totalBranchPages}
-              onClick={() => setBranchPage((p) => p + 1)}
-            >
-              Next
-            </Button>
-          </Stack>
-        </Sheet>
-      </Card>
+    {/* Pagination */}
+    <Stack direction="row" spacing={1} justifyContent="flex-end" mt={2}>
+      <Button disabled={branchPage <= 1} onClick={() => setBranchPage((p) => p - 1)}>
+        Previous
+      </Button>
+      <Typography>
+        Page {branchPage} of {totalBranchPages}
+      </Typography>
+      <Button
+        disabled={branchPage >= totalBranchPages}
+        onClick={() => setBranchPage((p) => p + 1)}
+      >
+        Next
+      </Button>
+    </Stack>
+  </Sheet>
+</Card>
+
 
       {/* -------- MODALS -------- */}
 

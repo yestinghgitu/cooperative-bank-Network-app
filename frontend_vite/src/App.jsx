@@ -16,9 +16,14 @@ import LoanSearch from "./components/LoanSearch";
 import LoanStatusCheck from "./components/LoanStatusCheck";
 import UserManagement from "./components/UserManagement";
 import SocietyBranchesManagement from "./components/SocietyBranchesManagement";
+import About from "./pages/About";
+import Contact from "./pages/Contact";
+import Terms from "./pages/Terms";
+import Privacy from "./pages/Privacy";
 
 import NavBar from "./components/NavBar";
 import { authAPI } from "./services/api";
+import AdminContactMessages from "./pages/AdminContactMessages";
 
 const theme = extendTheme({
   colorSchemes: {
@@ -127,7 +132,11 @@ function App() {
                 element={isAuthenticated ? <Navigate to="/dashboard" /> : <Register />}
               />
               <Route path="/status-check" element={<LoanStatusCheck />} />
-
+                <Route path="/about" element={<About />} />
+                  <Route path="/contact" element={<Contact />} />
+                  <Route path="/terms" element={<Terms />} />
+                  <Route path="/privacy" element={<Privacy />} />
+                  <Route path="/contact-messages" element={<AdminContactMessages />}/>
               {/* Private Routes */}
               {isAuthenticated && (
                 <>
@@ -139,6 +148,11 @@ function App() {
                   <Route path="/search" element={<LoanSearch />} />
                   <Route path="/admin-users" element={<UserManagement />} />
                   <Route path="/manage-banks" element={<SocietyBranchesManagement />} />
+                  <Route path="/about" element={<About />} />
+                  <Route path="/contact" element={<Contact />} />
+                  <Route path="/terms" element={<Terms />} />
+                  <Route path="/privacy" element={<Privacy />} />
+                  <Route path="/contact-messages" element={<AdminContactMessages />}/>
                 </>
               )}
 

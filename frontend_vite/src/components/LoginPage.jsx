@@ -16,8 +16,9 @@ import {
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { authAPI } from "../services/api";
 import logo from "../assets/logo_login.png";
+import AuthFooter from "../components/AuthFooter"; // ✅ new footer import
 
-const LoginPage = ({ onLogin, onSwitchRegister }) => {
+const LoginPage = ({ onLogin }) => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -26,13 +27,12 @@ const LoginPage = ({ onLogin, onSwitchRegister }) => {
   const { mode } = useColorScheme();
   const usernameRef = useRef(null);
 
-  // Autofocus on username input
   useEffect(() => {
     if (usernameRef.current) usernameRef.current.focus();
   }, []);
 
   const handleSubmit = async (e) => {
-    e.preventDefault(); // ✅ Prevent full page reload
+    e.preventDefault();
     setErrorMsg("");
 
     if (!username.trim() || !password) {
@@ -44,10 +44,7 @@ const LoginPage = ({ onLogin, onSwitchRegister }) => {
     try {
       const res = await authAPI.login({ username, password });
       const { access_token, user } = res.data || {};
-
-      if (!access_token || !user) {
-        throw new Error("Invalid login response. Please try again.");
-      }
+      if (!access_token || !user) throw new Error("Invalid login response.");
 
       localStorage.setItem("authToken", access_token);
       localStorage.setItem("user", JSON.stringify(user));
@@ -69,10 +66,11 @@ const LoginPage = ({ onLogin, onSwitchRegister }) => {
       sx={{
         minHeight: "100vh",
         display: "flex",
-        alignItems: "center",
+        flexDirection: "column",
         justifyContent: "center",
+        alignItems: "center",
         bgcolor: "background.body",
-        px: 2,
+        p: 2,
       }}
     >
       <Card
@@ -83,7 +81,7 @@ const LoginPage = ({ onLogin, onSwitchRegister }) => {
           boxShadow: "lg",
           textAlign: "center",
           p: 3,
-          backdropFilter: "blur(6px)",
+          backdropFilter: "blur(8px)",
         }}
       >
         <CardContent>
@@ -115,7 +113,7 @@ const LoginPage = ({ onLogin, onSwitchRegister }) => {
           )}
 
           {/* Login Form */}
-          <form onSubmit={handleSubmit} noValidate autoComplete="off">
+          <form onSubmit={handleSubmit} noValidate>
             <Stack spacing={1.5}>
               <Box>
                 <FormLabel>Username</FormLabel>
@@ -125,7 +123,7 @@ const LoginPage = ({ onLogin, onSwitchRegister }) => {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   fullWidth
-                  slotProps={{ input: { ref: usernameRef } }} // ✅ fixed ref
+                  slotProps={{ input: { ref: usernameRef } }}
                 />
               </Box>
 
@@ -154,13 +152,14 @@ const LoginPage = ({ onLogin, onSwitchRegister }) => {
                 type="submit"
                 disabled={loading}
                 fullWidth
-                sx={{ py: 1.2 }}
+                sx={{ py: 1.2, fontWeight: 600 }}
               >
                 {loading ? <CircularProgress size="sm" /> : "Sign In"}
               </Button>
             </Stack>
           </form>
 
+          {/* Contact Info */}
           <Typography level="body-xs" mt={1.5} color="neutral.500">
             For inquiries, contact:{" "}
             <a href="tel:+917892611670" style={{ color: "#1a73e8" }}>
@@ -171,12 +170,18 @@ const LoginPage = ({ onLogin, onSwitchRegister }) => {
               +91 94805 95927
             </a>{" "}
             |{" "}
-            <a href="mailto:b2bnetworkguide@gmail.com" style={{ color: "#1a73e8" }}>
+            <a
+              href="mailto:b2bnetworkguide@gmail.com"
+              style={{ color: "#1a73e8" }}
+            >
               b2bnetworkguide@gmail.com
             </a>
           </Typography>
         </CardContent>
       </Card>
+
+      {/* ✅ Modern Reusable Footer */}
+      <AuthFooter />
     </Box>
   );
 };
