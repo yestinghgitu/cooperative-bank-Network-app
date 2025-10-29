@@ -33,9 +33,7 @@ const ViewLoans = () => {
   const navigate = useNavigate();
 
   const [applications, setApplications] = useState([]);
-  const [filtered, setFiltered] = useState([]);
   const [loading, setLoading] = useState(true);
-
   const [visibleColumns, setVisibleColumns] = useState({
     borrower_name: true,
     loan_type: true,
@@ -56,10 +54,11 @@ const ViewLoans = () => {
   const [editApp, setEditApp] = useState(null);
   const [deleteApp, setDeleteApp] = useState(null);
   const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const currentUser = JSON.parse(localStorage.getItem("user")) || {};
 
-  // Fetch Loans
+  // Fetch Loans (server-side pagination)
   const fetchLoans = async () => {
     setLoading(true);
     try {
@@ -86,14 +85,13 @@ const ViewLoans = () => {
       } else if (currentUser.role === "user") {
         apps = apps.filter(
           (a) =>
-            a.created_by_user_id === currentUser.id &&
             a.society_name === currentUser.bank_name &&
             a.branch_name === currentUser.branch_name
         );
       }
 
       setApplications(apps);
-      setFiltered(apps);
+      setTotalPages(res.data?.pages || 1);
     } catch (error) {
       console.error("Error loading applications:", error);
       toast.error("Failed to load Loans.");
@@ -106,20 +104,14 @@ const ViewLoans = () => {
     fetchLoans();
   }, [page]);
 
-  // Search
+  // Search (trigger server-side)
   useEffect(() => {
-    const term = searchTerm.toLowerCase();
-    const results = applications.filter(
-      (app) =>
-        app.first_name?.toLowerCase().includes(term) ||
-        app.last_name?.toLowerCase().includes(term) ||
-        app.aadhar_number?.toLowerCase().includes(term) ||
-        app.pan_number?.toLowerCase().includes(term) ||
-        app.mobile_number?.toLowerCase().includes(term)
-    );
-    setFiltered(results);
-    setPage(1);
-  }, [searchTerm, applications]);
+    const delayDebounce = setTimeout(() => {
+      setPage(1);
+      fetchLoans();
+    }, 500);
+    return () => clearTimeout(delayDebounce);
+  }, [searchTerm]);
 
   const maskAadhar = (num) => (num ? num.replace(/\d(?=\d{4})/g, "•") : "—");
   const maskPan = (num) => (num ? num.replace(/\w(?=\w{4})/g, "•") : "—");
@@ -127,7 +119,7 @@ const ViewLoans = () => {
 
   // Export Excel
   const exportToExcel = () => {
-    const worksheet = XLSX.utils.json_to_sheet(filtered);
+    const worksheet = XLSX.utils.json_to_sheet(applications);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Applications");
     XLSX.writeFile(workbook, "loans.xlsx");
@@ -167,12 +159,6 @@ const ViewLoans = () => {
     }
   };
 
-  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
-  const paginated = filtered.slice(
-    (page - 1) * ITEMS_PER_PAGE,
-    page * ITEMS_PER_PAGE
-  );
-
   if (loading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", mt: 10 }}>
@@ -199,7 +185,6 @@ const ViewLoans = () => {
         </Typography>
 
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-          {/* Navigate to CreateLoan page */}
           <Button
             variant="solid"
             color="primary"
@@ -287,12 +272,18 @@ const ViewLoans = () => {
               </tr>
             </thead>
             <tbody>
-              {paginated.length > 0 ? (
-                paginated.map((app) => (
+              {applications.length > 0 ? (
+                applications.map((app) => (
                   <tr key={app.application_id}>
-                    {visibleColumns.borrower_name && <td>{app.first_name} {app.last_name}</td>}
+                    {visibleColumns.borrower_name && (
+                      <td>
+                        {app.first_name} {app.last_name}
+                      </td>
+                    )}
                     {visibleColumns.loan_type && <td>{app.loan_type}</td>}
-                    {visibleColumns.loan_amount && <td>₹ {app.loan_amount?.toLocaleString()}</td>}
+                    {visibleColumns.loan_amount && (
+                      <td>₹ {app.loan_amount?.toLocaleString()}</td>
+                    )}
                     {visibleColumns.status && (
                       <td>
                         <Chip
@@ -311,25 +302,48 @@ const ViewLoans = () => {
                     )}
                     {visibleColumns.society_name && <td>{app.society_name}</td>}
                     {visibleColumns.branch_name && <td>{app.branch_name}</td>}
-                    {visibleColumns.aadhar_number && <td>{maskAadhar(app.aadhar_number)}</td>}
-                    {visibleColumns.pan_number && <td>{maskPan(app.pan_number)}</td>}
-                    {visibleColumns.mobile_number && <td>{maskMobile(app.mobile_number)}</td>}
-                    {visibleColumns.created_at && <td>{new Date(app.created_at).toLocaleString()}</td>}
+                    {visibleColumns.aadhar_number && (
+                      <td>{maskAadhar(app.aadhar_number)}</td>
+                    )}
+                    {visibleColumns.pan_number && (
+                      <td>{maskPan(app.pan_number)}</td>
+                    )}
+                    {visibleColumns.mobile_number && (
+                      <td>{maskMobile(app.mobile_number)}</td>
+                    )}
+                    {visibleColumns.created_at && (
+                      <td>{new Date(app.created_at).toLocaleString()}</td>
+                    )}
                     {visibleColumns.created_by && <td>{app.created_by}</td>}
                     {visibleColumns.remarks && <td>{app.remarks}</td>}
                     <td>
                       <Tooltip title="View Details">
-                        <IconButton size="sm" variant="plain" color="neutral" onClick={() => setViewApp(app)}>
+                        <IconButton
+                          size="sm"
+                          variant="plain"
+                          color="neutral"
+                          onClick={() => setViewApp(app)}
+                        >
                           <Eye size={16} />
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Edit">
-                        <IconButton size="sm" variant="plain" color="primary" onClick={() => setEditApp({ ...app })}>
+                        <IconButton
+                          size="sm"
+                          variant="plain"
+                          color="primary"
+                          onClick={() => setEditApp({ ...app })}
+                        >
                           <Pencil size={16} />
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Delete">
-                        <IconButton size="sm" variant="plain" color="danger" onClick={() => setDeleteApp(app)}>
+                        <IconButton
+                          size="sm"
+                          variant="plain"
+                          color="danger"
+                          onClick={() => setDeleteApp(app)}
+                        >
                           <Trash2 size={16} />
                         </IconButton>
                       </Tooltip>
@@ -348,8 +362,20 @@ const ViewLoans = () => {
         </Sheet>
       </Box>
 
-      {/* PAGINATION */}
-      <Box sx={{ display: "flex", justifyContent: "space-between", mt: 2 }}>
+           {/* PAGINATION */}
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          mt: 3,
+          mb: 10, // 👈 Add bottom margin to push it above footer
+          position: "relative",
+          zIndex: 2, // 👈 Ensure it's above the footer layer
+          backgroundColor: "background.body", // optional: keeps pagination readable
+          py: 1, // small vertical padding
+        }}
+      >
         <Button
           disabled={page === 1}
           onClick={() => setPage((p) => p - 1)}
@@ -369,10 +395,14 @@ const ViewLoans = () => {
         </Button>
       </Box>
 
+      {/* VIEW / EDIT / DELETE MODALS remain unchanged */}
       {/* VIEW MODAL */}
       {viewApp && (
         <Modal open onClose={() => setViewApp(null)}>
-          <ModalDialog size="lg" sx={{ maxHeight: "90vh", overflowY: "auto", p: 3 }}>
+          <ModalDialog
+            size="lg"
+            sx={{ maxHeight: "90vh", overflowY: "auto", p: 3 }}
+          >
             <Typography level="h5" mb={2}>
               💰 Loan Details
             </Typography>
@@ -396,8 +426,16 @@ const ViewLoans = () => {
                 ["Created", new Date(viewApp.created_at).toLocaleString()],
                 ["Remarks", viewApp.remarks || "—"],
               ].map(([key, value]) => (
-                <Box key={key} display="flex" gap={1}>
-                  <Typography fontWeight="lg" flex="0 0 140px" sx={{ textAlign: "left", whiteSpace: "nowrap" }}>
+                <Box
+                  key={key}
+                  display="flex"
+                  gap={1}
+                >
+                  <Typography
+                    fontWeight="lg"
+                    flex="0 0 140px"
+                    sx={{ textAlign: "left", whiteSpace: "nowrap" }}
+                  >
                     {key}:
                   </Typography>
                   <Typography flex="1">{value}</Typography>
@@ -412,7 +450,7 @@ const ViewLoans = () => {
         </Modal>
       )}
 
-      {/* EDIT LOAN MODAL */}
+      {/* EDIT MODAL & DELETE MODAL unchanged */}
       {editApp && (
         <Modal open={!!editApp} onClose={() => setEditApp(null)}>
           <ModalDialog
@@ -435,48 +473,89 @@ const ViewLoans = () => {
                 mb: 2,
               }}
             >
-              {/* Society & Branch */}
               <FormControl>
-                <Typography level="body-sm" sx={{ mb: 0.5 }}>Society Name</Typography>
+                <Typography level="body-sm" sx={{ mb: 0.5 }}>
+                  Society Name
+                </Typography>
                 <Input value={editApp.society_name || ""} disabled variant="soft" />
               </FormControl>
 
               <FormControl>
-                <Typography level="body-sm" sx={{ mb: 0.5 }}>Branch Name</Typography>
+                <Typography level="body-sm" sx={{ mb: 0.5 }}>
+                  Branch Name
+                </Typography>
                 <Input value={editApp.branch_name || ""} disabled variant="soft" />
               </FormControl>
 
-              {/* Borrower Name */}
               <FormControl>
-                <Typography level="body-sm" sx={{ mb: 0.5 }}>Borrower First Name</Typography>
-                <Input value={editApp.first_name || ""} onChange={(e) => setEditApp({ ...editApp, first_name: e.target.value })} />
+                <Typography level="body-sm" sx={{ mb: 0.5 }}>
+                  Borrower First Name
+                </Typography>
+                <Input
+                  value={editApp.first_name || ""}
+                  onChange={(e) =>
+                    setEditApp({ ...editApp, first_name: e.target.value })
+                  }
+                />
               </FormControl>
 
               <FormControl>
-                <Typography level="body-sm" sx={{ mb: 0.5 }}>Borrower Last Name</Typography>
-                <Input value={editApp.last_name || ""} onChange={(e) => setEditApp({ ...editApp, last_name: e.target.value })} />
-              </FormControl>
-
-              {/* Identification */}
-              <FormControl>
-                <Typography level="body-sm" sx={{ mb: 0.5 }}>Aadhar Number</Typography>
-                <Input value={editApp.aadhar_number || ""} onChange={(e) => setEditApp({ ...editApp, aadhar_number: e.target.value })} />
-              </FormControl>
-
-              <FormControl>
-                <Typography level="body-sm" sx={{ mb: 0.5 }}>PAN Number</Typography>
-                <Input value={editApp.pan_number || ""} onChange={(e) => setEditApp({ ...editApp, pan_number: e.target.value })} />
-              </FormControl>
-
-              {/* Loan Details */}
-              <FormControl>
-                <Typography level="body-sm" sx={{ mb: 0.5 }}>Loan Amount</Typography>
-                <Input type="number" value={editApp.loan_amount || ""} onChange={(e) => setEditApp({ ...editApp, loan_amount: e.target.value })} />
+                <Typography level="body-sm" sx={{ mb: 0.5 }}>
+                  Borrower Last Name
+                </Typography>
+                <Input
+                  value={editApp.last_name || ""}
+                  onChange={(e) =>
+                    setEditApp({ ...editApp, last_name: e.target.value })
+                  }
+                />
               </FormControl>
 
               <FormControl>
-                <Typography level="body-sm" sx={{ mb: 0.5 }}>Status</Typography>
-                <Select value={editApp.status || "Due"} onChange={(e, val) => setEditApp({ ...editApp, status: val })}>
+                <Typography level="body-sm" sx={{ mb: 0.5 }}>
+                  Aadhar Number
+                </Typography>
+                <Input
+                  value={editApp.aadhar_number || ""}
+                  onChange={(e) =>
+                    setEditApp({ ...editApp, aadhar_number: e.target.value })
+                  }
+                />
+              </FormControl>
+
+              <FormControl>
+                <Typography level="body-sm" sx={{ mb: 0.5 }}>
+                  PAN Number
+                </Typography>
+                <Input
+                  value={editApp.pan_number || ""}
+                  onChange={(e) =>
+                    setEditApp({ ...editApp, pan_number: e.target.value })
+                  }
+                />
+              </FormControl>
+
+              <FormControl>
+                <Typography level="body-sm" sx={{ mb: 0.5 }}>
+                  Loan Amount
+                </Typography>
+                <Input
+                  type="number"
+                  value={editApp.loan_amount || ""}
+                  onChange={(e) =>
+                    setEditApp({ ...editApp, loan_amount: e.target.value })
+                  }
+                />
+              </FormControl>
+
+              <FormControl>
+                <Typography level="body-sm" sx={{ mb: 0.5 }}>
+                  Status
+                </Typography>
+                <Select
+                  value={editApp.status || "Due"}
+                  onChange={(e, val) => setEditApp({ ...editApp, status: val })}
+                >
                   <Option value="Due">Due</Option>
                   <Option value="Overdue">Overdue</Option>
                   <Option value="Litigation">Litigation</Option>
@@ -484,18 +563,32 @@ const ViewLoans = () => {
                 </Select>
               </FormControl>
 
-              {/* Remarks */}
               <FormControl sx={{ gridColumn: "1 / -1" }}>
-                <Typography level="body-sm" sx={{ mb: 0.5 }}>Remarks</Typography>
-                <Input value={editApp.remarks || ""} onChange={(e) => setEditApp({ ...editApp, remarks: e.target.value })} />
+                <Typography level="body-sm" sx={{ mb: 0.5 }}>
+                  Remarks
+                </Typography>
+                <Input
+                  value={editApp.remarks || ""}
+                  onChange={(e) =>
+                    setEditApp({ ...editApp, remarks: e.target.value })
+                  }
+                />
               </FormControl>
             </Box>
 
             <Divider sx={{ mb: 2 }} />
 
             <Box display="flex" justifyContent="flex-end" gap={1}>
-              <Button variant="outlined" color="neutral" onClick={() => setEditApp(null)}>Cancel</Button>
-              <Button color="primary" onClick={handleEditSave}>Save Changes</Button>
+              <Button
+                variant="outlined"
+                color="neutral"
+                onClick={() => setEditApp(null)}
+              >
+                Cancel
+              </Button>
+              <Button color="primary" onClick={handleEditSave}>
+                Save Changes
+              </Button>
             </Box>
           </ModalDialog>
         </Modal>

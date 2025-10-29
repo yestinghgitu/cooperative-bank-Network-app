@@ -17,6 +17,7 @@ from models import ContactMessage
 from flask_mail import Message
 from models import ContactMessage
 from flask_mail import Mail
+from flask_migrate import Migrate
 
 # ==========================
 # Initialization
@@ -64,6 +65,8 @@ mail = Mail(app)
 # ==========================
 jwt = JWTManager(app)
 db.init_app(app)
+migrate = Migrate(app, db)
+
 init_auth_routes(app)
 
 # ==========================
