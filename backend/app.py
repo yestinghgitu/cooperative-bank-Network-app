@@ -185,7 +185,7 @@ def paginate_query(query, page, limit):
 def create_tables_and_data():
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     db.create_all()
-
+    
     # create sample bank & branch
     bank = CooperativeBank.query.filter_by(bank_name='Sample Cooperative Bank').first()
     if not bank:
@@ -226,7 +226,7 @@ def create_tables_and_data():
             branch_id=branch.id,
             created_by='system'
         )
-        admin.set_password('Admin@123')
+        admin.set_password('2bck$@1157')
         db.session.add(admin)
         db.session.commit()
         print("Admin created: username=admin password=Admin@123")
