@@ -136,7 +136,7 @@ const Dashboard = ({ onNavigate }) => {
       {/* Header */}
       {/* <Box sx={{ textAlign: "center", mb: 6 }}>
         <Typography level="h3" fontWeight="xl" mb={2}>
-          Cooperative Bank Network Dashboard
+          CoNetX Dashboard
         </Typography>
         <Typography level="body-md" color="neutral.600" maxWidth={600} mx="auto">
           Empowering cooperative banks through one connected digital platform. Connect, monitor, and manage loans and services across all cooperative banks in your network.

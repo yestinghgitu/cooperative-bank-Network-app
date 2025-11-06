@@ -18,7 +18,7 @@ const About = () => {
           textAlign="center"
           sx={{ color: "primary.plainColor", mb: 1 }}
         >
-          About Cooperative Bank Network
+          About CoNetX
         </Typography>
         <Typography
           level="body-sm"
@@ -29,7 +29,7 @@ const About = () => {
         </Typography>
 
         <Typography level="body-md" sx={{ mb: 2 }}>
-          The Cooperative Bank Network is an initiative designed to empower
+          The CoNetX is an initiative designed to empower
           cooperative banks, credit societies, and financial institutions
           through secure data sharing and loan verification. Our goal is to
           prevent borrower fraud, streamline inter-bank collaboration, and

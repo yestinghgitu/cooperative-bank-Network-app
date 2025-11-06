@@ -13,7 +13,7 @@ const Privacy = () => {
   const sections = [
     {
       title: "1. Introduction",
-      text: `This Privacy Policy explains how the Cooperative Bank Network (“CBN”, “we”, “our”, or “us”) collects, uses, and protects your information when you use our platform. By accessing the service, you agree to this Policy.`,
+      text: `This Privacy Policy explains how the CoNetX (“CoNetX”, “we”, “our”, or “us”) collects, uses, and protects your information when you use our platform. By accessing the service, you agree to this Policy.`,
     },
     {
       title: "2. Information We Collect",

@@ -13,7 +13,7 @@ const Terms = () => {
   const sections = [
     {
       title: "1. Overview",
-      text: `The Cooperative Bank Network (“CBN”) platform enables cooperative banks and credit societies to record, manage, and verify borrowers’ existing loans — preventing duplicate or fraudulent loan applications while promoting responsible lending.`,
+      text: `The CoNetX (“CoNetX”) platform enables cooperative banks and credit societies to record, manage, and verify borrowers’ existing loans — preventing duplicate or fraudulent loan applications while promoting responsible lending.`,
     },
     {
       title: "2. Eligibility",
@@ -25,7 +25,7 @@ const Terms = () => {
     },
     {
       title: "4. Data Accuracy & Verification",
-      text: `Each participating institution is responsible for validating its own data before submission. CBN facilitates data exchange but does not independently audit or verify accuracy.`,
+      text: `Each participating institution is responsible for validating its own data before submission. CoNetX facilitates data exchange but does not independently audit or verify accuracy.`,
     },
     {
       title: "5. Confidentiality",
@@ -33,11 +33,11 @@ const Terms = () => {
     },
     {
       title: "6. Intellectual Property",
-      text: `All software, design, branding, and documentation are the exclusive intellectual property of Cooperative Bank Network. Unauthorized reproduction or distribution is prohibited.`,
+      text: `All software, design, branding, and documentation are the exclusive intellectual property of CoNetX. Unauthorized reproduction or distribution is prohibited.`,
     },
     {
       title: "7. Limitation of Liability",
-      text: `The platform is provided on an “as is” and “as available” basis. CBN shall not be liable for any loss, error, downtime, or misuse of shared information.`,
+      text: `The platform is provided on an “as is” and “as available” basis. CoNetX shall not be liable for any loss, error, downtime, or misuse of shared information.`,
     },
     {
       title: "8. Governing Law",

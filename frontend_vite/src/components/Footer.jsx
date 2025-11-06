@@ -1,42 +1,59 @@
 import React from "react";
-import { Sheet, Typography, Box, Stack, Link, Divider } from "@mui/joy";
+import { useNavigate } from "react-router-dom";
+import {
+  Sheet,
+  Typography,
+  Box,
+  Stack,
+  Link as JoyLink,
+  Divider,
+  IconButton,
+} from "@mui/joy";
 import { Banknote, Linkedin, Twitter, Facebook } from "lucide-react";
 
 const Footer = () => {
+  const navigate = useNavigate();
+
   return (
     <Sheet
       variant="soft"
-      color="neutral"
       sx={{
         mt: 6,
-        py: 3,
-        borderRadius: "12px 12px 0 0",
+        py: { xs: 4, md: 5 },
+        borderRadius: "16px 16px 0 0",
         boxShadow: "sm",
-        backdropFilter: "blur(6px)",
+        backdropFilter: "blur(12px)",
+        background: {
+          xs: "linear-gradient(145deg, var(--joy-palette-neutral-50), var(--joy-palette-background-surface))",
+          md: "linear-gradient(145deg, var(--joy-palette-primary-50), var(--joy-palette-background-body))",
+        },
+        color: "text.primary",
       }}
     >
-      {/* Upper Section */}
+      {/* ========== Upper Section ========== */}
       <Stack
         direction={{ xs: "column", md: "row" }}
         alignItems={{ xs: "flex-start", md: "center" }}
         justifyContent="space-between"
-        spacing={2}
-        sx={{ px: { xs: 2, md: 4 } }}
+        spacing={3}
+        sx={{ px: { xs: 2, md: 5 } }}
       >
-        {/* Left: Brand */}
+        {/* ---- Left: Brand ---- */}
         <Stack direction="row" alignItems="center" spacing={1}>
-          <Banknote size={24} color="var(--joy-palette-primary-500)" />
+          <Banknote size={26} color="var(--joy-palette-primary-500)" />
           <Typography
             level="title-lg"
-            color="primary"
             fontWeight="lg"
-            sx={{ whiteSpace: "nowrap" }}
+            sx={{
+              whiteSpace: "nowrap",
+              color: "primary.plainColor",
+            }}
           >
-            Cooperative Bank Network
+            CoNetX
           </Typography>
         </Stack>
 
-        {/* Center: Links */}
+        {/* ---- Center: Navigation Links ---- */}
         <Stack
           direction="row"
           spacing={3}
@@ -46,63 +63,96 @@ const Footer = () => {
             fontSize: "0.9rem",
           }}
         >
-          <Link
-            href="#"
+          <JoyLink
+            component="button"
+            onClick={() => navigate("/about")}
             level="body-sm"
-            color="neutral"
             sx={{
               "&:hover": { color: "primary.plainColor", textDecoration: "none" },
             }}
           >
             About Us
-          </Link>
-          <Link
-            href="#"
+          </JoyLink>
+          <JoyLink
+            component="button"
+            onClick={() => navigate("/contact")}
             level="body-sm"
-            color="neutral"
             sx={{
               "&:hover": { color: "primary.plainColor", textDecoration: "none" },
             }}
           >
             Contact
-          </Link>
-          <Link
-            href="#"
+          </JoyLink>
+          <JoyLink
+            component="button"
+            onClick={() => navigate("/legal")}
             level="body-sm"
-            color="neutral"
+            sx={{
+              "&:hover": { color: "primary.plainColor", textDecoration: "none" },
+            }}
+          >
+            Terms & Conditions
+          </JoyLink>
+          <JoyLink
+            component="button"
+            onClick={() => navigate("/privacy")}
+            level="body-sm"
             sx={{
               "&:hover": { color: "primary.plainColor", textDecoration: "none" },
             }}
           >
             Privacy Policy
-          </Link>
+          </JoyLink>
         </Stack>
 
-        {/* Right: Social Icons */}
+        {/* ---- Right: Social Links ---- */}
         <Stack direction="row" spacing={1.5}>
-          <Link href="#" aria-label="LinkedIn">
-            <Linkedin size={20} />
-          </Link>
-          <Link href="#" aria-label="Twitter">
-            <Twitter size={20} />
-          </Link>
-          <Link href="#" aria-label="Facebook">
-            <Facebook size={20} />
-          </Link>
+          {[
+            { icon: Linkedin, label: "LinkedIn", href: "#" },
+            { icon: Twitter, label: "Twitter", href: "#" },
+            { icon: Facebook, label: "Facebook", href: "#" },
+          ].map(({ icon: Icon, label, href }, i) => (
+            <IconButton
+              key={i}
+              variant="plain"
+              color="neutral"
+              component="a"
+              href={href}
+              aria-label={label}
+              sx={{
+                "&:hover": {
+                  color: "primary.solidBg",
+                  transform: "scale(1.1)",
+                  transition: "all 0.2s ease",
+                },
+              }}
+            >
+              <Icon size={20} />
+            </IconButton>
+          ))}
         </Stack>
       </Stack>
 
-      {/* Divider */}
-      <Divider sx={{ my: 2, opacity: 0.6 }} />
+      {/* ========== Divider ========== */}
+      <Divider sx={{ my: 3, opacity: 0.6 }} />
 
-      {/* Bottom Section */}
+      {/* ========== Bottom Section ========== */}
       <Box textAlign="center" px={2}>
-        <Typography level="body-sm" color="neutral">
-          © {new Date().getFullYear()} Cooperative Bank Network. All rights
-          reserved.
+        <Typography level="body-sm" sx={{ color: "text.secondary" }}>
+          © {new Date().getFullYear()}{" "}
+          <strong>CoNetX</strong>. All rights reserved.
         </Typography>
-        <Typography level="body-xs" color="neutral" sx={{ mt: 0.5 }}>
-          Empowering Co-operative Banks through a unified digital ecosystem.
+        <Typography
+          level="body-xs"
+          sx={{
+            mt: 0.5,
+            color: "text.tertiary",
+            maxWidth: 600,
+            mx: "auto",
+          }}
+        >
+          Empowering Cooperative Banks through secure, transparent, and
+          collaborative digital lending.
         </Typography>
       </Box>
     </Sheet>

@@ -10,7 +10,7 @@ const NavBar = ({ userName, onLogout, onNavigate }) => {
       alignItems: 'center' 
     }}>
       <div style={{ color: 'white', fontWeight: 'bold', fontSize: '1.2rem' }}>
-        Cooperative Bank Network - Welcome, {userName}
+        CoNetX - Welcome, {userName}
       </div>
       
       <div style={{ display: 'flex', gap: '0.5rem' }}>

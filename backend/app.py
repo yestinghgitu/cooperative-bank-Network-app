@@ -18,6 +18,7 @@ from flask_mail import Message
 from models import ContactMessage
 from flask_mail import Mail
 from flask_migrate import Migrate
+from flask_sqlalchemy import SQLAlchemy
 
 # ==========================
 # Initialization
@@ -31,19 +32,42 @@ CORS(app, origins=[
     "http://localhost:5173",
     "http://65.2.63.253:5173",
     "https://cooperativebanknetwork.com",
-    "https://www.cooperativebanknetwork.com"
+    "https://www.cooperativebanknetwork.com",
+    "https://www.conetx.in",
+    "https://conetx.in"
 ], supports_credentials=True)
 
 # ==========================
-# Configuration
+# MySQL Configuration
 # ==========================
-basedir = os.path.abspath(os.path.dirname(__file__))
-db_path = os.path.join(basedir, "instance", "database.db")
-os.makedirs(os.path.dirname(db_path), exist_ok=True)
+load_dotenv()
+DB_TYPE = os.getenv("DB_TYPE", "sqlite").lower()
+MYSQL_USER = os.environ.get('MYSQL_USER', 'root')
+MYSQL_PASSWORD = os.environ.get('MYSQL_PASSWORD', 'password')
+MYSQL_HOST = os.environ.get('MYSQL_HOST', '127.0.0.1')
+MYSQL_PORT = os.environ.get('MYSQL_PORT', '3306')
+MYSQL_DB = os.environ.get('MYSQL_DB', 'conetx_db')
+SQLITE_PATH = os.getenv("SQLITE_PATH", "instance/database.db")
+# Database configuration (auto-switch between MySQL and SQLite)
+if DB_TYPE == "mysql":
+    print("Using MySQL database")
+    app.config["SQLALCHEMY_DATABASE_URI"] = (
+        f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}/{MYSQL_DB}"
+    )
+else:
+    print("Using SQLite database")
+    basedir = os.path.abspath(os.path.dirname(__file__))
+    DB_PATH = os.path.join(basedir, SQLITE_PATH)
+    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{db_path}"
+    app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DB_PATH}"
+
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+#db = SQLAlchemy(app)
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET', 'vaibhavanidhi-secret-key-2024')
+app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET', '8f0f9c3b94c8842c13e6a8f23e97f8a5bda03b58d1c456e20e8d1dbe89d71b94')
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
@@ -58,7 +82,6 @@ app.config['MAIL_PASSWORD'] = 'your_app_password'     # Use App Password, not yo
 app.config['MAIL_DEFAULT_SENDER'] = ('Cooperative Bank Network', 'your_email@gmail.com')
 
 mail = Mail(app)
-
 
 # ==========================
 # Initialize extensions
@@ -87,7 +110,6 @@ def role_required(*roles):
         return wrapper
     return decorator
 
-
 def admin_required(fn):
     """Simple admin-only decorator"""
     @wraps(fn)
@@ -98,7 +120,6 @@ def admin_required(fn):
             return jsonify({'error': 'Admin privileges required'}), 403
         return fn(current_user, *args, **kwargs)
     return wrapper
-
 
 def loan_modify_required(fn):
     """
@@ -122,7 +143,6 @@ def loan_modify_required(fn):
             application = LoanApplication.query.filter_by(id=int(id)).first()
         if not application:
             application = LoanApplication.query.filter_by(application_id=str(id)).first()
-
         if not application:
             return jsonify({'error': 'Application not found'}), 404
 
@@ -152,7 +172,6 @@ def loan_modify_required(fn):
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
-
 def format_date_for_backend(date_string):
     """
     Accepts date string 'YYYY-MM-DD' or 'DD-MM-YYYY' and returns a datetime.date
@@ -173,7 +192,6 @@ def format_date_for_backend(date_string):
             except Exception:
                 raise ValueError('Invalid date format. Use YYYY-MM-DD or DD-MM-YYYY')
 
-
 def paginate_query(query, page, limit):
     total = query.count()
     items = query.offset((page - 1) * limit).limit(limit).all()
@@ -185,7 +203,7 @@ def paginate_query(query, page, limit):
 def create_tables_and_data():
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     db.create_all()
-    
+
     # create sample bank & branch
     bank = CooperativeBank.query.filter_by(bank_name='Sample Cooperative Bank').first()
     if not bank:
@@ -237,7 +255,7 @@ def create_tables_and_data():
     if BankService.query.count() == 0:
         default_services = [
             BankService(service_type='Membership', name='Member Registration',
-                        description='Register new members to your cooperative bank network.',
+                        description='Register new members to your ConNetX.',
                         processing_time='Immediate',
                         features='Create member profile\nAssign membership ID\nCapture KYC details'),
             BankService(service_type='Loans', name='Loan Repayment & Tracking',
@@ -252,7 +270,6 @@ def create_tables_and_data():
         db.session.add_all(default_services)
         db.session.commit()
         print("✅ Default bank services added")
-
 
 with app.app_context():
     create_tables_and_data()
@@ -1003,14 +1020,14 @@ def create_contact_message():
             mail.send(msg)
             # Send acknowledgment to user
             ack = Message(
-                subject="Thank you for contacting Cooperative Bank Network",
+                subject="Thank you for contacting ConNetX",
                 recipients=[email],
                 body=(
                     f"Dear {name},\n\n"
-                    "Thank you for reaching out to the Cooperative Bank Network. "
+                    "Thank you for reaching out to the ConNetX. "
                     "We have received your message and will get back to you soon.\n\n"
                     "Warm regards,\n"
-                    "Cooperative Bank Network Team"
+                    "ConNetX Team"
                 )
             )
             mail.send(ack)
@@ -1096,7 +1113,7 @@ def delete_contact_message(current_user, message_id):
 # ==========================
 if __name__ == '__main__':
     print("="*60)
-    print("COOPERATIVE BANK NETWORK - BACKEND SERVER")
+    print("ConNetX - BACKEND SERVER")
     print("="*60)
     print("Server starting at: http://localhost:5000")
     print("Demo Login → admin = admin / admin@123")

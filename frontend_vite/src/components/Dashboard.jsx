@@ -459,7 +459,7 @@ const Dashboard = () => {
         }}
       >
         <Typography level="body-sm" color="neutral.500">
-          &copy; {new Date().getFullYear()} Cooperative Bank Network. All rights reserved.
+          &copy; {new Date().getFullYear()} CoNetX. All rights reserved.
         </Typography>
       </Box>
     </Box>

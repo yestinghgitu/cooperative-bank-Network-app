@@ -43,7 +43,7 @@ const AuthFooter = () => {
       </Stack>
 
       <Typography level="body-xs" sx={{ color: "text.tertiary" }}>
-        © {new Date().getFullYear()} Cooperative Bank Network. All rights reserved.
+        © {new Date().getFullYear()} CoNetX. All rights reserved.
       </Typography>
     </Box>
   );

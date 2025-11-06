@@ -1,8 +1,8 @@
-# app.py
+# app1.py
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from flask_jwt_extended import (
-    JWTManager, jwt_required, get_jwt_identity
+    JWTManager, jwt_required, get_jwt_identity, create_access_token
 )
 from models import db, User, LoanApplication, BankService, Transaction, CooperativeBank, CooperativeBranch
 from auth import init_auth_routes
@@ -12,6 +12,12 @@ from functools import wraps
 import os
 from dotenv import load_dotenv
 from math import ceil
+from models import ContactMessage
+
+from flask_mail import Message
+from models import ContactMessage
+from flask_mail import Mail
+from flask_migrate import Migrate
 
 # ==========================
 # Initialization
@@ -25,7 +31,9 @@ CORS(app, origins=[
     "http://localhost:5173",
     "http://65.2.63.253:5173",
     "https://cooperativebanknetwork.com",
-    "https://www.cooperativebanknetwork.com"
+    "https://www.cooperativebanknetwork.com",
+    "https://www.conetx.in",
+     "https://conetx.in"
 ], supports_credentials=True)
 
 # ==========================
@@ -36,7 +44,7 @@ MYSQL_USER = os.environ.get('MYSQL_USER', 'root')
 MYSQL_PASSWORD = os.environ.get('MYSQL_PASSWORD', 'password')
 MYSQL_HOST = os.environ.get('MYSQL_HOST', '127.0.0.1')
 MYSQL_PORT = os.environ.get('MYSQL_PORT', '3306')
-MYSQL_DB = os.environ.get('MYSQL_DB', 'cooperative_db')
+MYSQL_DB = os.environ.get('MYSQL_DB', 'conetx_db')
 
 app.config['SQLALCHEMY_DATABASE_URI'] = f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DB}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -51,12 +59,17 @@ app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif'}
 # ==========================
 jwt = JWTManager(app)
 db.init_app(app)
+migrate = Migrate(app, db)
+
 init_auth_routes(app)
 
 # ==========================
 # Role Decorators
 # ==========================
 def role_required(*roles):
+    """
+    Use as @role_required('admin', 'manager') etc.
+    """
     def decorator(fn):
         @wraps(fn)
         @jwt_required()
@@ -69,6 +82,7 @@ def role_required(*roles):
     return decorator
 
 def admin_required(fn):
+    """Simple admin-only decorator"""
     @wraps(fn)
     @jwt_required()
     def wrapper(*args, **kwargs):
@@ -79,6 +93,14 @@ def admin_required(fn):
     return wrapper
 
 def loan_modify_required(fn):
+    """
+    Decorator used on endpoints that modify/delete a loan.
+    Enforces:
+      - Admin: can modify any loan
+      - Manager: can modify loans belonging to their branch only
+      - User: can modify loans they created (created_by_user_id)
+    The view function will receive (application, current_user, *args, **kwargs)
+    """
     @wraps(fn)
     @jwt_required()
     def wrapper(id, *args, **kwargs):
@@ -100,12 +122,16 @@ def loan_modify_required(fn):
             return fn(application, current_user, *args, **kwargs)
 
         # Manager can modify only if same branch
-        if current_user.role == 'manager' and application.branch_id == current_user.branch_id:
-            return fn(application, current_user, *args, **kwargs)
+        if current_user.role == 'manager':
+            if application.branch_id == current_user.branch_id:
+                return fn(application, current_user, *args, **kwargs)
+            return jsonify({'error': 'Managers can only modify loans of their branch'}), 403
 
         # User can modify only own created loans
-        if current_user.role == 'user' and application.created_by_user_id == current_user.id:
-            return fn(application, current_user, *args, **kwargs)
+        if current_user.role == 'user':
+            if application.created_by_user_id == current_user.id:
+                return fn(application, current_user, *args, **kwargs)
+            return jsonify({'error': 'Users can only modify their own loans'}), 403
 
         return jsonify({'error': 'Access denied'}), 403
 
@@ -118,9 +144,12 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
 def format_date_for_backend(date_string):
+    """
+    Accepts date string 'YYYY-MM-DD' or 'DD-MM-YYYY' and returns a datetime.date
+    """
     if not date_string:
         return None
-    if isinstance(date_string, datetime):
+    if isinstance(date_string, (datetime,)):
         return date_string
     try:
         return datetime.strptime(date_string, '%Y-%m-%d')
@@ -128,6 +157,7 @@ def format_date_for_backend(date_string):
         try:
             return datetime.strptime(date_string, '%d-%m-%Y')
         except Exception:
+            # if it's already in ISO, try parse
             try:
                 return datetime.fromisoformat(date_string)
             except Exception:
@@ -185,7 +215,7 @@ def create_tables_and_data():
             branch_id=branch.id,
             created_by='system'
         )
-        admin.set_password('Admin@123')
+        admin.set_password('2bck$@1157')
         db.session.add(admin)
         db.session.commit()
         print("Admin created: username=admin password=Admin@123")
@@ -196,7 +226,7 @@ def create_tables_and_data():
     if BankService.query.count() == 0:
         default_services = [
             BankService(service_type='Membership', name='Member Registration',
-                        description='Register new members to your cooperative bank network.',
+                        description='Register new members to your ConNetX.',
                         processing_time='Immediate',
                         features='Create member profile\nAssign membership ID\nCapture KYC details'),
             BankService(service_type='Loans', name='Loan Repayment & Tracking',
@@ -460,7 +490,7 @@ def create_bank(current_user):
     data = request.get_json() or {}
 
     # enforce required fields that DB schema expects (avoid NOT NULL errors)
-    required_fields = ['bank_name', 'registration_number', 'head_office_address', 'district', 'state']
+    required_fields = ['bank_name', 'head_office_address', 'district', 'state']
     missing = [f for f in required_fields if not data.get(f)]
     if missing:
         return jsonify({'error': f"Missing required fields: {', '.join(missing)}"}), 400
@@ -919,14 +949,144 @@ def serve_react_app(path):
         return send_from_directory(app.static_folder, path)
     return send_from_directory(app.static_folder, 'index.html')
 
+
+# ==========================
+# Contact Us Messages
+# ==========================
+
+@app.route('/api/contact', methods=['POST'])
+def create_contact_message():
+    """
+    Public endpoint for website visitors to send messages.
+    Saves to database and emails admin.
+    """
+    data = request.get_json() or {}
+    name = data.get('name')
+    email = data.get('email')
+    message = data.get('message')
+
+    if not name or not email or not message:
+        return jsonify({'error': 'Name, email, and message are required.'}), 400
+
+    try:
+        # Save message
+        contact = ContactMessage(name=name, email=email, message=message)
+        db.session.add(contact)
+        db.session.commit()
+
+        # Send email notification to admin
+        try:
+            admin_email = "admin@cooperativebanknetwork.com"
+            msg = Message(
+                subject=f"New Contact Message from {name}",
+                recipients=[admin_email],
+                body=(
+                    f"You have received a new contact message:\n\n"
+                    f"Name: {name}\n"
+                    f"Email: {email}\n"
+                    f"Message:\n{message}\n\n"
+                    f"View all messages in your admin dashboard."
+                )
+            )
+            mail.send(msg)
+            # Send acknowledgment to user
+            ack = Message(
+                subject="Thank you for contacting ConNetX",
+                recipients=[email],
+                body=(
+                    f"Dear {name},\n\n"
+                    "Thank you for reaching out to the ConNetX. "
+                    "We have received your message and will get back to you soon.\n\n"
+                    "Warm regards,\n"
+                    "ConNetX Team"
+                )
+            )
+            mail.send(ack)
+
+            app.logger.info(f"Contact email sent to {admin_email}")
+        except Exception as e:
+            app.logger.error(f"Failed to send contact email: {e}")
+
+        return jsonify({'message': 'Message received successfully.'}), 201
+
+    except Exception as e:
+        db.session.rollback()
+        app.logger.exception("Error saving contact message")
+        return jsonify({'error': 'Failed to save message', 'details': str(e)}), 500
+
+
+@app.route('/api/contact', methods=['GET'])
+@role_required('admin', 'manager')
+def list_contact_messages(current_user):
+    """
+    Admin/Manager endpoint to view all contact messages.
+    Supports pagination and search.
+    """
+    page = int(request.args.get('page', 1))
+    limit = int(request.args.get('limit', 20))
+    search = request.args.get('search', '')
+
+    query = ContactMessage.query
+    if search:
+        query = query.filter(
+            (ContactMessage.name.ilike(f'%{search}%')) |
+            (ContactMessage.email.ilike(f'%{search}%')) |
+            (ContactMessage.message.ilike(f'%{search}%'))
+        )
+
+    messages, total = paginate_query(query.order_by(ContactMessage.created_at.desc()), page, limit)
+    return jsonify({
+        'data': [m.to_dict() for m in messages],
+        'page': page,
+        'limit': limit,
+        'total': total,
+        'pages': ceil(total / limit)
+    }), 200
+
+
+@app.route('/api/contact/<int:message_id>/status', methods=['PUT'])
+@role_required('admin', 'manager')
+def update_contact_status(current_user, message_id):
+    """
+    Mark message as Read or Unread (admin or manager only)
+    """
+    data = request.get_json() or {}
+    status = data.get('status')
+    if status not in ['Read', 'Unread']:
+        return jsonify({'error': 'Status must be either Read or Unread'}), 400
+
+    message = ContactMessage.query.get(message_id)
+    if not message:
+        return jsonify({'error': 'Message not found'}), 404
+
+    message.status = status
+    db.session.commit()
+    return jsonify({'message': f'Status updated to {status}', 'data': message.to_dict()}), 200
+
+
+@app.route('/api/contact/<int:message_id>', methods=['DELETE'])
+@role_required('admin',)
+def delete_contact_message(current_user, message_id):
+    """
+    Admin-only: delete contact messages
+    """
+    message = ContactMessage.query.get(message_id)
+    if not message:
+        return jsonify({'error': 'Message not found'}), 404
+
+    db.session.delete(message)
+    db.session.commit()
+    return jsonify({'message': 'Message deleted successfully'}), 200
+
+
 # ==========================
 # Run Server
 # ==========================
 if __name__ == '__main__':
     print("="*60)
-    print("COOPERATIVE BANK NETWORK - BACKEND SERVER")
+    print("ConNetX - BACKEND SERVER")
     print("="*60)
     print("Server starting at: http://localhost:5000")
-    print("Demo Login → admin = admin / Admin@123")
+    print("Demo Login → admin = admin / admin@123")
     print("="*60)
     app.run(debug=True, host='0.0.0.0', port=5000)

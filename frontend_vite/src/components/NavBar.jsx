@@ -29,7 +29,7 @@ import {
   Menu as LucideMenu,
   X,
 } from "lucide-react";
-import logo from "../assets/co_network.png";
+import logo from "../assets/conetx_logo.png";
 
 const NavBar = ({ userName, userRole, onLogout }) => {
   const navigate = useNavigate();
@@ -142,31 +142,35 @@ const NavBar = ({ userName, userRole, onLogout }) => {
         }}
       >
         {/* Logo */}
-        <Stack direction="row" alignItems="center" spacing={1}>
-          <Box
-            component="img"
-            src={logo}
-            alt="Cooperative Bank Network Logo"
-            sx={{ width: { xs: 40, sm: 50, md: 70 }, objectFit: "contain" }}
-          />
-          <Typography
-            level="title-lg"
-            color="primary"
-            fontWeight="lg"
-            sx={{
-              fontSize: { xs: "1rem", sm: "1.1rem", md: "1.25rem" },
-              ml: 1,
-              whiteSpace: "nowrap",
-            }}
-          >
-            <Box component="span" sx={{ display: { xs: "inline", sm: "none" } }}>
-              CBN
-            </Box>
-            <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
-              Cooperative Bank Network
-            </Box>
-          </Typography>
-        </Stack>
+<Stack direction="row" alignItems="center" spacing={1}>
+  <Box
+    sx={{
+      height: "70px", // fixed navbar height
+      width: "120px", // logo area width
+      display: "flex",
+      alignItems: "center",
+      overflow: "visible", // allows logo to "peek" outside without pushing navbar
+    }}
+  >
+    <Box
+      component="img"
+      src={logo}
+      alt="CoNetX Logo"
+      sx={{
+        height: "100%", // fits container height
+        width: "auto",
+        objectFit: "contain",
+        transform: "scale(2.6)", // visually enlarge logo without changing layout
+        transformOrigin: "left center",
+        transition: "transform 0.3s ease",
+        filter: "drop-shadow(0 2px 2px rgba(0,0,0,0.1))",
+        "&:hover": {
+          transform: "scale(1.7)",
+        },
+      }}
+    />
+  </Box>
+</Stack>
 
         {/* Menu Section */}
         <Stack direction="row" spacing={1} alignItems="center">
@@ -408,7 +412,7 @@ const NavBar = ({ userName, userRole, onLogout }) => {
           <Stack direction="row" alignItems="center" spacing={0.8}>
             <Banknote size={18} color="var(--joy-palette-primary-500)" />
             <Typography level="body-sm" fontWeight="lg">
-              Cooperative Bank Network © {new Date().getFullYear()}
+              CoNetX © {new Date().getFullYear()}
             </Typography>
           </Stack>
 

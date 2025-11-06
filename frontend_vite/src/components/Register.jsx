@@ -59,7 +59,7 @@ const Register = ({ onBack, onSwitchToLogin }) => {
             Create Your Account
           </Typography>
           <Typography level="body-sm" textAlign="center" color="neutral.500" mb={2}>
-            Join the Cooperative Bank Network
+            Join the CoNetX
           </Typography>
 
           {msg && <Alert color="success">{msg}</Alert>}

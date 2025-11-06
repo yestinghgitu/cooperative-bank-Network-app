@@ -1,4 +1,4 @@
-# Nginx Configuration for Cooperative Bank Network App
+# Nginx Configuration for CoNetX App
 
 ## 📍 Location
 Configuration file:

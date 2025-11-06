@@ -1,6 +1,6 @@
 # 📘 README: Database Migration Setup (Flask-Migrate)
 
-This guide explains how to initialize and manage database migrations for the Cooperative Bank Network backend using **Flask-Migrate** and **SQLAlchemy**.
+This guide explains how to initialize and manage database migrations for the CoNetX backend using **Flask-Migrate** and **SQLAlchemy**.
 
 ---
 

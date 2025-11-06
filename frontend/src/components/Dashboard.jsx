@@ -66,7 +66,7 @@ const Dashboard = ({ onNavigate }) => {
             color: '#1e3c72',
             fontSize: '28px'
           }}>
-            Cooperative Bank Network
+            CoNetX
           </h1>
           <p style={{ 
             margin: 0, 

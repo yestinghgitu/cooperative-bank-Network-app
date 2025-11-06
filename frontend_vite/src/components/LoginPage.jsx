@@ -15,8 +15,8 @@ import {
 } from "@mui/joy";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { authAPI } from "../services/api";
-import logo from "../assets/logo_login.png";
-import AuthFooter from "../components/AuthFooter"; // ✅ new footer import
+import logo from "../assets/conetx_logo.png";
+import AuthFooter from "../components/AuthFooter";
 
 const LoginPage = ({ onLogin }) => {
   const [username, setUsername] = useState("");
@@ -86,21 +86,37 @@ const LoginPage = ({ onLogin }) => {
       >
         <CardContent>
           {/* Logo */}
-          <Box sx={{ display: "flex", justifyContent: "center", mb: 1 }}>
-            <img
-              src={logo}
-              alt="Cooperative Bank Network Logo"
-              width={200}
-              height="auto"
-              style={{
-                borderRadius: "10px",
-                filter:
-                  mode === "dark"
-                    ? "brightness(1.1) drop-shadow(0 0 3px rgba(255,255,255,0.3))"
-                    : "drop-shadow(0 0px 0px rgba(0,0,0,0.25))",
-              }}
-            />
-          </Box>
+        {/* Logo */}
+<Box
+  sx={{
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    mb: 1,
+    mt: -0.5,
+  }}
+>
+  <Box
+    component="img"
+    src={logo}
+    alt="CoNetX Logo"
+    sx={{
+      height: 70, // same height as navbar logo container
+      width: "auto",
+      objectFit: "contain",
+      transform: "scale(2.5)", // same scale as navbar logo
+      transformOrigin: "center",
+      transition: "transform 0.3s ease",
+      filter:
+        mode === "dark"
+          ? "brightness(1.1) drop-shadow(0 0 3px rgba(255,255,255,0.3))"
+          : "drop-shadow(0 1px 2px rgba(0,0,0,0.25))",
+    }}
+  />
+</Box>
+
+
+
 
           <Typography level="body-sm" mb={1} color="neutral.500">
             Bringing cooperative banks together — securely and digitally.

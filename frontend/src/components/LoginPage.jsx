@@ -66,7 +66,7 @@ const Login = ({ onLogin, onSwitchRegister, onPublicSearch, onStatusCheck }) => 
       }}>
         <div style={{ textAlign: 'center', marginBottom: '30px' }}>
           <div style={{ fontSize: '48px', marginBottom: '15px' }}>🏦</div>
-          <h2 style={{ margin: '0 0 10px 0', color: '#333' }}>Cooperative Bank Network</h2>
+          <h2 style={{ margin: '0 0 10px 0', color: '#333' }}>CoNetX</h2>
           <p style={{ margin: 0, color: '#666' }}>Welcome back! Please sign in to your account.</p>
         </div>
 

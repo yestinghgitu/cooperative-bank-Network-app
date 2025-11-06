@@ -340,7 +340,7 @@ const Dashboard = ({ onNavigate }) => {
       {/* === Footer === */}
       <Box sx={{ textAlign: "center", py: 4, mt: "auto", bgcolor: "#e3f2fd", borderTop: "1px solid #ccc" }}>
         <Typography level="body-sm" color="neutral.600">
-          &copy; {new Date().getFullYear()} Indian Cooperative Bank Network. All rights reserved.
+          &copy; {new Date().getFullYear()} Indian CoNetX. All rights reserved.
         </Typography>
       </Box>
     </Box>
