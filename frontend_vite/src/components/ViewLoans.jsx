@@ -113,9 +113,9 @@ const ViewLoans = () => {
     return () => clearTimeout(delayDebounce);
   }, [searchTerm]);
 
-  const maskAadhar = (num) => (num ? num.replace(/\d(?=\d{4})/g, "•") : "—");
-  const maskPan = (num) => (num ? num.replace(/\w(?=\w{4})/g, "•") : "—");
-  const maskMobile = (num) => (num ? num.replace(/\d(?=\d{4})/g, "•") : "—");
+  // const maskAadhar = (num) => (num ? num.replace(/\d(?=\d{4})/g, "•") : "—");
+  // const maskPan = (num) => (num ? num.replace(/\w(?=\w{4})/g, "•") : "—");
+  // const maskMobile = (num) => (num ? num.replace(/\d(?=\d{4})/g, "•") : "—");
 
   // Export Excel
   const exportToExcel = () => {
@@ -303,13 +303,13 @@ const ViewLoans = () => {
                     {visibleColumns.society_name && <td>{app.society_name}</td>}
                     {visibleColumns.branch_name && <td>{app.branch_name}</td>}
                     {visibleColumns.aadhar_number && (
-                      <td>{maskAadhar(app.aadhar_number)}</td>
+                      <td>{app.aadhar_number}</td>
                     )}
                     {visibleColumns.pan_number && (
-                      <td>{maskPan(app.pan_number)}</td>
+                      <td>{app.pan_number}</td>
                     )}
                     {visibleColumns.mobile_number && (
-                      <td>{maskMobile(app.mobile_number)}</td>
+                      <td>{app.mobile_number}</td>
                     )}
                     {visibleColumns.created_at && (
                       <td>{new Date(app.created_at).toLocaleString()}</td>
@@ -420,9 +420,9 @@ const ViewLoans = () => {
                 ["Status", viewApp.status],
                 ["Society Name", viewApp.society_name],
                 ["Branch Name", viewApp.branch_name],
-                ["Aadhar", maskAadhar(viewApp.aadhar_number)],
-                ["PAN Number", maskPan(viewApp.pan_number)],
-                ["Mobile", maskMobile(viewApp.mobile_number)],
+                ["Aadhar", viewApp.aadhar_number],
+                ["PAN Number", viewApp.pan_number],
+                ["Mobile", viewApp.mobile_number],
                 ["Created", new Date(viewApp.created_at).toLocaleString()],
                 ["Remarks", viewApp.remarks || "—"],
               ].map(([key, value]) => (

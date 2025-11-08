@@ -29,7 +29,7 @@ import {
   Menu as LucideMenu,
   X,
 } from "lucide-react";
-import logo from "../assets/conetx_logo.png";
+import logo from "../assets/conetx_logo_new.png";
 
 const NavBar = ({ userName, userRole, onLogout }) => {
   const navigate = useNavigate();
@@ -160,7 +160,7 @@ const NavBar = ({ userName, userRole, onLogout }) => {
         height: "100%", // fits container height
         width: "auto",
         objectFit: "contain",
-        transform: "scale(2.6)", // visually enlarge logo without changing layout
+        transform: "scale(1.9)", // visually enlarge logo without changing layout
         transformOrigin: "left center",
         transition: "transform 0.3s ease",
         filter: "drop-shadow(0 2px 2px rgba(0,0,0,0.1))",

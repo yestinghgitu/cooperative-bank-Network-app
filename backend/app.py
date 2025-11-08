@@ -19,6 +19,7 @@ from models import ContactMessage
 from flask_mail import Mail
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
+from utils import mask_sensitive_info
 
 # ==========================
 # Initialization
@@ -247,7 +248,7 @@ def create_tables_and_data():
         admin.set_password('2bck$@1157')
         db.session.add(admin)
         db.session.commit()
-        print("Admin created: username=admin password=Admin@123")
+        print("Admin created: username=admin password=*******")
     else:
         print("admin already exists.")
 
@@ -403,7 +404,7 @@ def list_users(current_user):
     
     users, total = paginate_query(query, page, limit)
     return jsonify({
-        'data': [u.to_dict() for u in users],
+        'data': [mask_sensitive_info(u.to_dict()) for u in users],
         'page': page,
         'limit': limit,
         'total': total,
@@ -770,33 +771,34 @@ def search_loan_applications():
                             .all()
 
         # Build response
-        result = []
-        for app_obj in applications:
-            result.append({
-                "id": app_obj.id,
-                "application_id": app_obj.application_id,
-                "first_name": app_obj.first_name,
-                "last_name": app_obj.last_name,
-                "mother_name": app_obj.mother_name,
-                "father_name": app_obj.father_name,
-                "gender": app_obj.gender,
-                "date_of_birth": app_obj.date_of_birth.isoformat() if app_obj.date_of_birth else None,
-                "aadhar_number": app_obj.aadhar_number,
-                "pan_number": app_obj.pan_number,
-                "mobile_number": app_obj.mobile_number,
-                "email": app_obj.email,
-                "address": app_obj.address,
-                "city": app_obj.city,
-                "state": app_obj.state,
-                "pincode": app_obj.pincode,
-                "photo_url": app_obj.photo_url,
-                "loan_type": app_obj.loan_type,
-                "loan_amount": app_obj.loan_amount,
-                "status": app_obj.status,
-                "society_name": app_obj.society_name or (app_obj.bank.bank_name if app_obj.bank else None),
-                "branch_name": app_obj.branch_name or (app_obj.branch.branch_name if app_obj.branch else None),
-                "created_at": app_obj.created_at.isoformat() if app_obj.created_at else None
-            })
+        # result = []
+        # for app_obj in applications:
+        #     result.append({
+        #         "id": app_obj.id,
+        #         "application_id": app_obj.application_id,
+        #         "first_name": app_obj.first_name,
+        #         "last_name": app_obj.last_name,
+        #         "mother_name": app_obj.mother_name,
+        #         "father_name": app_obj.father_name,
+        #         "gender": app_obj.gender,
+        #         "date_of_birth": app_obj.date_of_birth.isoformat() if app_obj.date_of_birth else None,
+        #         "aadhar_number": app_obj.aadhar_number,
+        #         "pan_number": app_obj.pan_number,
+        #         "mobile_number": app_obj.mobile_number,
+        #         "email": app_obj.email,
+        #         "address": app_obj.address,
+        #         "city": app_obj.city,
+        #         "state": app_obj.state,
+        #         "pincode": app_obj.pincode,
+        #         "photo_url": app_obj.photo_url,
+        #         "loan_type": app_obj.loan_type,
+        #         "loan_amount": app_obj.loan_amount,
+        #         "status": app_obj.status,
+        #         "society_name": app_obj.society_name or (app_obj.bank.bank_name if app_obj.bank else None),
+        #         "branch_name": app_obj.branch_name or (app_obj.branch.branch_name if app_obj.branch else None),
+        #         "created_at": app_obj.created_at.isoformat() if app_obj.created_at else None
+        #     })
+        result = [mask_sensitive_info(app_obj.to_dict()) for app_obj in applications]
 
         return jsonify({
             "data": result,
@@ -904,7 +906,7 @@ def list_loans():
 
     loans, total = paginate_query(query.order_by(LoanApplication.id.desc()), page, limit)
     return jsonify({
-        'data': [l.to_dict() for l in loans],
+        'data': [mask_sensitive_info(l.to_dict()) for l in loans],
         'page': page,
         'limit': limit,
         'total': total,

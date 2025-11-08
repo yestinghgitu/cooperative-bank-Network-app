@@ -178,43 +178,37 @@ const LoanSearch = ({  }) => {
               </tr>
             </thead>
             <tbody>
-              {results.map((app) => {
-                // Mask mobile number except last 4 digits
-                const maskedMobile = app.mobile_number
-                  ? "xxxxxx" + app.mobile_number.slice(-4)
-                  : "";
+  {results.map((app) => (
+    <tr key={app.application_id || app.id}>
+      <td>
+        {app.first_name} {app.last_name}
+      </td>
+      <td>{app.mobile_number}</td>
+      <td>{app.loan_type}</td>
+      <td>₹{app.loan_amount?.toLocaleString()}</td>
+      <td>{app.society_name}</td>
+      <td>{app.branch_name}</td>
+      <td>
+        <Typography
+          level="body-sm"
+          fontWeight="lg"
+          color={
+            app.status === "Running"
+              ? "success"
+              : app.status === "Due"
+              ? "warning"
+              : ["Overdue", "Litigation"].includes(app.status)
+              ? "danger"
+              : "neutral"
+          }
+        >
+          {app.status}
+        </Typography>
+      </td>
+    </tr>
+  ))}
+</tbody>
 
-                return (
-                  <tr key={app.application_id || app.id}>
-                    <td>
-                      {app.first_name} {app.last_name}
-                    </td>
-                    <td>{maskedMobile}</td>
-                    <td>{app.loan_type}</td>
-                    <td>₹{app.loan_amount?.toLocaleString()}</td>
-                    <td>{app.society_name?.toLocaleString()}</td>
-                    <td>{app.branch_name?.toLocaleString()}</td>
-                    <td>
-                      <Typography
-                        level="body-sm"
-                        fontWeight="lg"
-                        color={
-                          app.status === "Running"
-                            ? "success"
-                            : app.status === "Due"
-                            ? "warning"
-                            : ["Overdue", "Litigation"].includes(app.status)
-                            ? "danger"
-                            : "neutral"
-                        }
-                      >
-                        {app.status}
-                      </Typography>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
           </Table>
         </Sheet>
       ) : (

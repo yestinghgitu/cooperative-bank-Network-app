@@ -211,7 +211,7 @@ class LoanApplication(db.Model):
     remarks = db.Column(db.String(255))
     created_by = db.Column(db.String(120))
     modified_by = db.Column(db.String(120))
-    password_hash = db.Column(db.String(120))
+    password_hash = db.Column(db.String(512))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     lead_status = db.Column(db.String(50), default='Pending')

@@ -15,7 +15,7 @@ import {
 } from "@mui/joy";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { authAPI } from "../services/api";
-import logo from "../assets/conetx_logo.png";
+import logo from "../assets/conetx_logo_new.png";
 import AuthFooter from "../components/AuthFooter";
 
 const LoginPage = ({ onLogin }) => {
@@ -104,7 +104,7 @@ const LoginPage = ({ onLogin }) => {
       height: 70, // same height as navbar logo container
       width: "auto",
       objectFit: "contain",
-      transform: "scale(2.5)", // same scale as navbar logo
+      transform: "scale(1.8)", // same scale as navbar logo
       transformOrigin: "center",
       transition: "transform 0.3s ease",
       filter:
@@ -119,7 +119,7 @@ const LoginPage = ({ onLogin }) => {
 
 
           <Typography level="body-sm" mb={1} color="neutral.500">
-            Bringing cooperative banks together — securely and digitally.
+            Bringing cooperatives together — securely and digitally.
           </Typography>
 
           {errorMsg && (
@@ -196,7 +196,7 @@ const LoginPage = ({ onLogin }) => {
         </CardContent>
       </Card>
 
-      {/* ✅ Modern Reusable Footer */}
+      {/* Modern Reusable Footer */}
       <AuthFooter />
     </Box>
   );

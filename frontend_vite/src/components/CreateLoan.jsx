@@ -23,6 +23,7 @@ import { jwtDecode } from "jwt-decode";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { State, City } from "country-state-city";
+import Autocomplete from "@mui/joy/Autocomplete";
 
 // Load Indian states and cities
 const allStates = State.getStatesOfCountry("IN");
@@ -428,61 +429,83 @@ const CreateLoan = () => {
                 variant="soft"
               />
 
-              {/* State + City (Joy-styled search dropdowns) */}
-              <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
-                <Box sx={{ flex: 1 }}>
-                  <Select
-                    placeholder="Select State"
-                    value={form.state}
-                    onChange={(_, v) => {
-                      setForm({ ...form, state: v, city: "" });
-                      const selected = allStates.find(
-                        (st) => st.name === v || st.isoCode === v
-                      );
-                      if (selected) setCityOptions(getCitiesByState(selected.isoCode));
-                    }}
-                    variant="soft"
-                  >
-                    {stateOptions.map((opt) => (
-                      <Option key={opt.value} value={opt.label}>
-                        {opt.label}
-                      </Option>
-                    ))}
-                  </Select>
-                </Box>
+ <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
+  {/* State */}
+  <Autocomplete
+    placeholder="Select or Type State"
+    options={stateOptions.map((s) => s.label)}
+    value={form.state || ""}
+    freeSolo
+    onChange={(_, newValue) => {
+      const selectedState = allStates.find(
+        (st) => st.name === newValue || st.isoCode === newValue
+      );
+      setForm({ state: newValue || "", city: "", taluk: "", pincode: "" });
 
-                <Box sx={{ flex: 1 }}>
-                  <Select
-                    placeholder="Select City"
-                    value={form.city}
-                    onChange={(_, v) => setForm({ ...form, city: v })}
-                    variant="soft"
-                    disabled={!cityOptions.length}
-                  >
-                    {cityOptions.map((opt) => (
-                      <Option key={opt.value} value={opt.label}>
-                        {opt.label}
-                      </Option>
-                    ))}
-                  </Select>
-                </Box>
+      if (selectedState) {
+        const cities = getCitiesByState(selectedState.isoCode);
+        setCityOptions(cities);
+      } else {
+        setCityOptions([]);
+      }
+    }}
+    onInputChange={(_, newValue) => {
+      setForm({ ...form, state: newValue, city: "", taluk: "", pincode: "" });
+      setCityOptions([]);
+    }}
+    variant="soft"
+  />
 
-                <Box sx={{ flex: 1 }}>
-                  <Input
-                    name="pincode"
-                    placeholder="Pincode"
-                    value={form.pincode}
-                    onChange={handleChange}
-                    variant="soft"
-                    error={Boolean(validation.pincode)}
-                  />
-                  {validation.pincode && (
-                    <Typography level="body-xs" color="danger">
-                      {validation.pincode}
-                    </Typography>
-                  )}
-                </Box>
-              </Stack>
+  {/* City */}
+  <Autocomplete
+    placeholder="Select or Type City"
+    options={cityOptions.map((c) => c.label)}
+    value={form.city || ""}
+    freeSolo
+    onChange={(_, newValue) => {
+      const selectedCity = cityOptions.find((c) => c.label === newValue);
+      setForm({
+        ...form,
+        city: newValue || "",
+        taluk: selectedCity?.taluk || "", // Autofill Taluk if available
+      });
+    }}
+    onInputChange={(_, newValue) => {
+      setForm({ ...form, city: newValue, taluk: "" });
+    }}
+    variant="soft"
+    disabled={!form.state}
+  />
+
+  {/* Taluk */}
+  {/* <Input
+    name="taluk"
+    placeholder="Taluk / Sub-District (optional)"
+    value={form.taluk || ""}
+    onChange={(e) =>
+      setForm({ ...form, taluk: e.target.value })
+    }
+    variant="soft"
+  /> */}
+
+  {/* Pincode */}
+  <Box sx={{ flex: 1 }}>
+    <Input
+      name="pincode"
+      placeholder="Pincode"
+      value={form.pincode}
+      onChange={handleChange}
+      variant="soft"
+      error={Boolean(validation.pincode)}
+    />
+    {validation.pincode && (
+      <Typography level="body-xs" color="danger">
+        {validation.pincode}
+      </Typography>
+    )}
+  </Box>
+</Stack>
+
 
               <Divider />
 

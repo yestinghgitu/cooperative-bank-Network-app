@@ -41,7 +41,7 @@ const Dashboard = () => {
 
   const slides = [
     {
-      title: "Empowering Cooperative Banks",
+      title: "Empowering Cooperatives",
       subtitle:
         "Connecting communities through shared growth, transparency, and trust.",
       bgImage:
