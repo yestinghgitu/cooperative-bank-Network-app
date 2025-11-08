@@ -16,14 +16,13 @@ import {
   Button,
   Divider,
   IconButton,
-  Autocomplete,
-  useMediaQuery
+  Autocomplete
 } from "@mui/joy";
 import { toast } from "sonner";
 import { superAdminAPI } from "../services/api";
 import { Plus, Edit, Trash2, Eye, ChevronDown, ChevronRight } from "lucide-react";
 import indiaDistrictsData from "../data/indiaDistricts.json";
-
+import useMediaQuery from "@mui/material/useMediaQuery";
 // ------------------ State & District Data ------------------
 const statesData = indiaDistrictsData.states;
 const stateDistrictMap = {};
