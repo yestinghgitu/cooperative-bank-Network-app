@@ -16,6 +16,7 @@ import {
   Option,
   IconButton,
   Button,
+  CircularProgress,
 } from "@mui/joy";
 import { toast } from "sonner";
 import { adminAPI, superAdminAPI } from "../services/api";
@@ -53,6 +54,9 @@ const UserManagement = () => {
     confirmPassword: "",
   });
   const [validation, setValidation] = useState({});
+  const [saving, setSaving] = useState(false); // for edit user
+  const [adding, setAdding] = useState(false); // for add user
+  const [resetting, setResetting] = useState(false); // for password reset
 
   const previousBankRef = useRef("");
 
@@ -77,7 +81,7 @@ const UserManagement = () => {
           (u) =>
             u.bank_name === currentUser.bank_name &&
             u.branch_name === currentUser.branch_name &&
-            u.role !== "admin" // Manager should not see admin users
+            u.role !== "admin"
         );
       } else {
         res = { data: { data: [], total: 0 } };
@@ -92,7 +96,7 @@ const UserManagement = () => {
     }
   };
 
-  // ------------------ Fetch banks only once ------------------
+  // ------------------ Fetch banks ------------------
   useEffect(() => {
     const fetchBanks = async () => {
       try {
@@ -135,32 +139,29 @@ const UserManagement = () => {
   }, [newUser.bank_name, currentUser]);
 
   // ------------------ Fetch branches for edit user ------------------
-useEffect(() => {
-  const fetchEditBranches = async () => {
-    if (editUser?.bank_name) {
-      try {
-        let branchList = [];
-        if (currentUser.role === "admin") {
-          const res = await superAdminAPI.getBranches(editUser.bank_name);
-          branchList = res.data?.data || [];
-        } else {
-          branchList = [{ branch_name: currentUser.branch_name }];
+  useEffect(() => {
+    const fetchEditBranches = async () => {
+      if (editUser?.bank_name) {
+        try {
+          let branchList = [];
+          if (currentUser.role === "admin") {
+            const res = await superAdminAPI.getBranches(editUser.bank_name);
+            branchList = res.data?.data || [];
+          } else {
+            branchList = [{ branch_name: currentUser.branch_name }];
+          }
+          setBranches(branchList);
+          if (!branchList.find((b) => b.branch_name === editUser.branch_name)) {
+            setEditUser((prev) => ({ ...prev, branch_name: "" }));
+          }
+        } catch (err) {
+          console.error(err);
+          toast.error("Failed to fetch branches");
         }
-        setBranches(branchList);
-
-        // Ensure branch_name is set for editUser
-        if (!branchList.find((b) => b.branch_name === editUser.branch_name)) {
-          setEditUser((prev) => ({ ...prev, branch_name: "" }));
-        }
-      } catch (err) {
-        console.error(err);
-        toast.error("Failed to fetch branches");
       }
-    }
-  };
-  fetchEditBranches();
-}, [editUser?.bank_name, currentUser]);
-
+    };
+    fetchEditBranches();
+  }, [editUser?.bank_name, currentUser]);
 
   // ------------------ Validation ------------------
   const validateField = (name, value) => {
@@ -187,6 +188,7 @@ useEffect(() => {
   };
 
   const handleSave = async () => {
+    setSaving(true);
     try {
       await adminAPI.updateUser(editUser.id, {
         full_name: editUser.full_name,
@@ -201,6 +203,8 @@ useEffect(() => {
       fetchUsers();
     } catch {
       toast.error("Failed to update user");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -218,12 +222,14 @@ useEffect(() => {
     if (Object.values(validation).some((v) => v)) {
       return toast.error("Please fix validation errors");
     }
+    setAdding(true);
     try {
       await adminAPI.createUser({
         ...newUser,
         bank_id: banks.find((b) => b.bank_name === newUser.bank_name)?.id,
         branch_id: branches.find((b) => b.branch_name === newUser.branch_name)?.id,
       });
+      toast.success("User added successfully");
       setAddUser(false);
       setNewUser({
         username: "",
@@ -241,6 +247,8 @@ useEffect(() => {
       fetchUsers();
     } catch {
       toast.error("Failed to add user");
+    } finally {
+      setAdding(false);
     }
   };
 
@@ -249,13 +257,17 @@ useEffect(() => {
       return toast.error("Password cannot be empty");
     if (newPassword !== confirmNewPassword)
       return toast.error("Passwords do not match");
+    setResetting(true);
     try {
       await adminAPI.resetPassword(resetUser.id, newPassword);
+      toast.success(`Password reset for ${resetUser.full_name}`);
       setResetUser(null);
       setNewPassword("");
       setConfirmNewPassword("");
     } catch {
       toast.error("Password reset failed");
+    } finally {
+      setResetting(false);
     }
   };
 
@@ -278,7 +290,8 @@ useEffect(() => {
               value={state[field.key]}
               onChange={(e, val) => {
                 setState({ ...state, [field.key]: val });
-                if (field.key === "bank_name") setState((prev) => ({ ...prev, branch_name: "" }));
+                if (field.key === "bank_name")
+                  setState((prev) => ({ ...prev, branch_name: "" }));
               }}
             >
               {Array.isArray(field.options) &&
@@ -294,7 +307,8 @@ useEffect(() => {
               value={state[field.key]}
               onChange={(e) => {
                 setState({ ...state, [field.key]: e.target.value });
-                if (field.key in validation) validateField(field.key, e.target.value);
+                if (field.key in validation)
+                  validateField(field.key, e.target.value);
               }}
               error={!!validation[field.key]}
               placeholder={validation[field.key] || ""}
@@ -329,7 +343,7 @@ useEffect(() => {
         currentUser.role === "admin"
           ? [
               { value: "user", label: "User" },
-              { value: "admin", label: "Admin" },
+             // { value: "admin", label: "Admin" },
               { value: "manager", label: "Manager" },
             ]
           : [{ value: "user", label: "User" }],
@@ -339,39 +353,39 @@ useEffect(() => {
   ];
 
   const editUserFields = [
-  { key: "full_name", label: "Full Name", type: "text" },
-  {
-    key: "role",
-    label: "Role",
-    type: "select",
-    options:
-      currentUser.role === "admin"
-        ? [
-            { value: "user", label: "User" },
-            { value: "admin", label: "Admin" },
-            { value: "manager", label: "Manager" },
-          ]
-        : [{ value: "user", label: "User" }],
-  },
-  {
-    key: "bank_name",
-    label: "Society",
-    type: "select",
-    options: banks.map((b) => ({ value: b.bank_name, label: b.bank_name })),
-  },
-  {
-    key: "branch_name",
-    label: "Branch",
-    type: "select",
-    options: branches.map((b) => ({ value: b.branch_name, label: b.branch_name })),
-  },
-];
-
+    { key: "full_name", label: "Full Name", type: "text" },
+    {
+      key: "role",
+      label: "Role",
+      type: "select",
+      options:
+        currentUser.role === "admin"
+          ? [
+              { value: "user", label: "User" },
+             // { value: "admin", label: "Admin" },
+              { value: "manager", label: "Manager" },
+            ]
+          : [{ value: "user", label: "User" }],
+    },
+    {
+      key: "bank_name",
+      label: "Society",
+      type: "select",
+      options: banks.map((b) => ({ value: b.bank_name, label: b.bank_name })),
+    },
+    {
+      key: "branch_name",
+      label: "Branch",
+      type: "select",
+      options: branches.map((b) => ({ value: b.branch_name, label: b.branch_name })),
+    },
+  ];
 
   if (loading)
     return (
       <Box sx={{ textAlign: "center", mt: 10 }}>
-        <Typography>Loading users...</Typography>
+        <CircularProgress size="lg" />
+        <Typography mt={1}>Loading users...</Typography>
       </Box>
     );
 
@@ -401,112 +415,112 @@ useEffect(() => {
       </Box>
 
       <Card variant="outlined" sx={{ p: 2 }}>
-  <Sheet variant="soft">
-    <Box sx={{ overflowX: "auto" }}>
-      <Table
-        hoverRow
-        stickyHeader
-        sx={{
-          minWidth: 900, // Prevents columns from collapsing too much
-          "& th, & td": {
-            whiteSpace: "nowrap",
-            textOverflow: "ellipsis",
-            overflow: "hidden",
-          },
-          "& td.email-cell": {
-            maxWidth: { xs: 160, sm: 240, md: 300 },
-            whiteSpace: "normal", // Allow wrapping
-            wordBreak: "break-all",
-          },
-          "& td, & th": {
-            px: 1.5,
-            py: 1,
-            fontSize: { xs: "0.75rem", sm: "0.875rem" },
-          },
-        }}
-      >
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Full Name</th>
-            <th>Username</th>
-            <th>Email</th>
-            <th>Society</th>
-            <th>Branch</th>
-            <th>Role</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map((u) => (
-            <tr key={u.id}>
-              <td>{u.id}</td>
-              <td>{u.full_name}</td>
-              <td>{u.username}</td>
-              <td className="email-cell">{u.email}</td>
-              <td>{u.bank_name}</td>
-              <td>{u.branch_name}</td>
-              <td>{u.role}</td>
-              <td>
-                <Stack direction="row" spacing={0.5}>
-                  {(currentUser.role === "admin" ||
-                    (currentUser.role === "manager" &&
-                      u.bank_name === currentUser.bank_name &&
-                      u.branch_name === currentUser.branch_name)) && (
-                    <>
-                      <IconButton
-                        size="sm"
-                        variant="outlined"
-                        color="primary"
-                        onClick={() => handleEdit(u)}
-                      >
-                        <Pencil size={16} />
-                      </IconButton>
-                      <IconButton
-                        size="sm"
-                        variant="outlined"
-                        color="danger"
-                        onClick={() => handleDelete(u.id)}
-                      >
-                        <Trash2 size={16} />
-                      </IconButton>
-                      <IconButton
-                        size="sm"
-                        variant="outlined"
-                        color="warning"
-                        onClick={() => setResetUser(u)}
-                      >
-                        <Key size={16} />
-                      </IconButton>
-                    </>
-                  )}
-                </Stack>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </Table>
-    </Box>
+        <Sheet variant="soft">
+          <Box sx={{ overflowX: "auto" }}>
+            <Table
+              hoverRow
+              stickyHeader
+              sx={{
+                minWidth: 900,
+                "& th, & td": {
+                  whiteSpace: "nowrap",
+                  textOverflow: "ellipsis",
+                  overflow: "hidden",
+                },
+                "& td.email-cell": {
+                  maxWidth: { xs: 160, sm: 240, md: 300 },
+                  whiteSpace: "normal",
+                  wordBreak: "break-all",
+                },
+                "& td, & th": {
+                  px: 1.5,
+                  py: 1,
+                  fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                },
+              }}
+            >
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Full Name</th>
+                  <th>Username</th>
+                  <th>Email</th>
+                  <th>Society</th>
+                  <th>Branch</th>
+                  <th>Role</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((u) => (
+                  <tr key={u.id}>
+                    <td>{u.id}</td>
+                    <td>{u.full_name}</td>
+                    <td>{u.username}</td>
+                    <td className="email-cell">{u.email}</td>
+                    <td>{u.bank_name}</td>
+                    <td>{u.branch_name}</td>
+                    <td>{u.role}</td>
+                    <td>
+                      <Stack direction="row" spacing={0.5}>
+                        {(currentUser.role === "admin" ||
+                          (currentUser.role === "manager" &&
+                            u.bank_name === currentUser.bank_name &&
+                            u.branch_name === currentUser.branch_name)) && (
+                          <>
+                            <IconButton
+                              size="sm"
+                              variant="outlined"
+                              color="primary"
+                              onClick={() => handleEdit(u)}
+                            >
+                              <Pencil size={16} />
+                            </IconButton>
+                            <IconButton
+                              size="sm"
+                              variant="outlined"
+                              color="danger"
+                              onClick={() => handleDelete(u.id)}
+                            >
+                              <Trash2 size={16} />
+                            </IconButton>
+                            <IconButton
+                              size="sm"
+                              variant="outlined"
+                              color="warning"
+                              onClick={() => setResetUser(u)}
+                            >
+                              <Key size={16} />
+                            </IconButton>
+                          </>
+                        )}
+                      </Stack>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </Box>
 
-    <Stack direction="row" spacing={1} justifyContent="flex-end" mt={2}>
-      <Button
-        disabled={page <= 1}
-        onClick={() => setPage((p) => Math.max(1, p - 1))}
-      >
-        Previous
-      </Button>
-      <Typography level="body2" sx={{ alignSelf: "center" }}>
-        Page {page} of {totalPages}
-      </Typography>
-      <Button
-        disabled={page >= totalPages}
-        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-      >
-        Next
-      </Button>
-    </Stack>
-  </Sheet>
-</Card>
+          <Stack direction="row" spacing={1} justifyContent="flex-end" mt={2}>
+            <Button
+              disabled={page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              Previous
+            </Button>
+            <Typography level="body2" sx={{ alignSelf: "center" }}>
+              Page {page} of {totalPages}
+            </Typography>
+            <Button
+              disabled={page >= totalPages}
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            >
+              Next
+            </Button>
+          </Stack>
+        </Sheet>
+      </Card>
 
       {/* ADD USER MODAL */}
       {addUser && (
@@ -525,7 +539,9 @@ useEffect(() => {
               >
                 Cancel
               </Button>
-              <Button onClick={handleAddUser}>Add User</Button>
+              <Button onClick={handleAddUser} disabled={adding}>
+                {adding ? <CircularProgress size="sm" /> : "Add User"}
+              </Button>
             </Stack>
           </ModalDialog>
         </Modal>
@@ -551,7 +567,9 @@ useEffect(() => {
               >
                 Cancel
               </Button>
-              <Button onClick={handleSave}>Save</Button>
+              <Button onClick={handleSave} disabled={saving}>
+                {saving ? <CircularProgress size="sm" /> : "Save"}
+              </Button>
             </Stack>
           </ModalDialog>
         </Modal>
@@ -595,7 +613,9 @@ useEffect(() => {
               >
                 Cancel
               </Button>
-              <Button onClick={handleResetPassword}>Reset</Button>
+              <Button onClick={handleResetPassword} disabled={resetting}>
+                {resetting ? <CircularProgress size="sm" /> : "Reset"}
+              </Button>
             </Stack>
           </ModalDialog>
         </Modal>

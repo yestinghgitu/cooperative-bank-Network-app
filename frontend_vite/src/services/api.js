@@ -60,6 +60,20 @@ export const authAPI = {
   verifyToken: () => safeRequest(api.get("/auth/verify")),
   logout: () => safeRequest(api.post("/auth/logout")),
   getProfile: () => safeRequest(api.get("/auth/profile")),
+   // 🔹 Forgot Password: request reset link
+  forgotPassword: (email) =>
+    safeRequest(
+      api.post("/auth/forgot-password", { email }),
+      "Reset link sent to your email",
+      "Failed to send reset link"
+    ),
+
+  resetPassword: (token, password) =>
+    safeRequest(
+      api.post(`/auth/reset-password/${token}`, { password }),
+      "Password reset successful",
+      "Failed to reset password"
+    ),
 };
 
 // ===================================================
@@ -143,7 +157,7 @@ export const adminAPI = {
     safeRequest(api.get("/admin/users", { params: { page, limit, search } })),
 
   createUser: (data) =>
-    safeRequest(api.post("/admin/users", data), "User created successfully"),
+    safeRequest(api.post("/admin/users", data), ""),
 
   updateUser: (id, data) =>
     safeRequest(api.put(`/admin/users/${id}`, data), "User updated successfully"),
@@ -154,7 +168,7 @@ export const adminAPI = {
   resetPassword: (id, password) =>
     safeRequest(
       api.post(`/admin/users/${id}/reset-password`, { password }),
-      "Password reset successfully"
+      ""
     ),
 };
 

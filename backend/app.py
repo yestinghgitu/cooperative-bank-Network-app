@@ -20,6 +20,20 @@ from flask_mail import Mail
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from utils import mask_sensitive_info
+from flask import url_for
+from datetime import timedelta
+import jwt as pyjwt
+from datetime import datetime, timedelta
+from flask import jsonify, request
+from utils import send_email
+
+import jwt as pyjwt
+from datetime import datetime, timedelta
+from flask import jsonify, request
+import re
+from sqlalchemy import and_
+from sqlalchemy.exc import IntegrityError
+
 
 # ==========================
 # Initialization
@@ -27,7 +41,8 @@ from utils import mask_sensitive_info
 load_dotenv()
 
 app = Flask(__name__, static_folder='../frontend/build', static_url_path='')
-CORS(app, origins=[
+
+CORS_URLS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://localhost:5173",
@@ -36,12 +51,13 @@ CORS(app, origins=[
     "https://www.cooperativebanknetwork.com",
     "https://www.conetx.in",
     "https://conetx.in"
-], supports_credentials=True)
+]
+ALLOWED_ORIGINS = os.environ.get('ALLOWED_ORIGINS', CORS_URLS).split(',')
+CORS(app, origins=ALLOWED_ORIGINS, supports_credentials=True)
 
 # ==========================
 # MySQL Configuration
 # ==========================
-load_dotenv()
 DB_TYPE = os.getenv("DB_TYPE", "sqlite").lower()
 MYSQL_USER = os.environ.get('MYSQL_USER', 'root')
 MYSQL_PASSWORD = os.environ.get('MYSQL_PASSWORD', 'password')
@@ -73,15 +89,19 @@ app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg', 'gif'}
+app.config['SECRET_KEY'] = os.getenv("SECRET_KEY", "supersecretkey123")
 
+# config.py or inside app.config.update({...})
+app.config['MAX_MANAGERS_PER_BRANCH'] = int(os.getenv('MAX_MANAGERS_PER_BRANCH', 1))
+app.config['MAX_USERS_PER_BRANCH'] = int(os.getenv('MAX_USERS_PER_BRANCH', 3))
 
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 587
-app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = 'your_email@gmail.com'  # Admin email
-app.config['MAIL_PASSWORD'] = 'your_app_password'     # Use App Password, not your login
-app.config['MAIL_DEFAULT_SENDER'] = ('Cooperative Bank Network', 'your_email@gmail.com')
-
+app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER','smtp.gmail.com')
+app.config['MAIL_PORT'] = os.environ.get('MAIL_PORT', 587)
+app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', True)
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME', 'conetx.notifications@gmail.com')  # Admin email
+app.config['MAIL_PASSWORD'] =  os.environ.get('MAIL_PASSWORD', 'qtjo pkof zhcw hauf')    # Use App Password, not your login
+app.config['MAIL_DEFAULT_SENDER'] = ('CoNetX',  os.environ.get('MAIL_DEFAULT_SENDER','conetx.notifications@gmail.com'))
+ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'conetx.notifications@gmail.com')
 mail = Mail(app)
 
 # ==========================
@@ -256,7 +276,7 @@ def create_tables_and_data():
     if BankService.query.count() == 0:
         default_services = [
             BankService(service_type='Membership', name='Member Registration',
-                        description='Register new members to your ConNetX.',
+                        description='Register new members to your CoNetX.',
                         processing_time='Immediate',
                         features='Create member profile\nAssign membership ID\nCapture KYC details'),
             BankService(service_type='Loans', name='Loan Repayment & Tracking',
@@ -411,67 +431,212 @@ def list_users(current_user):
         'pages': ceil(total / limit)
     }), 200
 
-
 @app.route('/api/admin/users', methods=['POST'])
 @role_required('admin', 'manager')
 def create_user(current_user):
     data = request.get_json() or {}
-    if not data.get('username') or not data.get('password'):
-        return jsonify({'error': 'Username and password required'}), 400
-    if User.query.filter_by(username=data['username']).first():
-        return jsonify({'error': 'Username already exists'}), 400
+
+    username = (data.get('username') or '').strip()
+    password = data.get('password')
+    email = (data.get('email') or '').strip()
+    full_name = (data.get('full_name') or '').strip()
+    role = (data.get('role') or 'user').lower()
+
+    # ------------------------------
+    # Required fields
+    # ------------------------------
+    if not username or not password:
+        return jsonify({'error': 'Username and password are required'}), 400
+
+    # Email format validation
+    if email and not re.match(r"^[^@]+@[^@]+\.[^@]+$", email):
+        return jsonify({'error': 'Invalid email format'}), 400
 
     bank_id = data.get('bank_id')
     branch_id = data.get('branch_id')
-    role = data.get('role', 'user')
 
-    # Manager cannot create admin users, and manager's bank/branch enforced
+    # ------------------------------
+    # Restrict manager privileges
+    # ------------------------------
     if current_user.role == 'manager':
         if role == 'admin':
             return jsonify({'error': 'Managers cannot create admin users'}), 403
         bank_id = current_user.bank_id
         branch_id = current_user.branch_id
 
-    # Admin can set bank/branch freely (superadmin)
+    if not branch_id:
+        return jsonify({'error': 'Branch is required'}), 400
+
+    # ------------------------------
+    # Configurable branch-level limits
+    # ------------------------------
+    max_managers = app.config.get('MAX_MANAGERS_PER_BRANCH', 1)
+    max_users = app.config.get('MAX_USERS_PER_BRANCH', 3)
+
+    manager_count = User.query.filter_by(branch_id=branch_id, role='manager').count()
+    user_count = User.query.filter_by(branch_id=branch_id, role='user').count()
+
+    if role == 'manager' and manager_count >= max_managers:
+        return jsonify({'error': f'Only {max_managers} manager(s) allowed per branch'}), 400
+
+    if role == 'user' and user_count >= max_users:
+        return jsonify({'error': f'Only {max_users} user(s) allowed per branch'}), 400
+
+    # ------------------------------
+    # Create user object
+    # ------------------------------
     user = User(
-        username=data['username'],
-        full_name=data.get('full_name', ''),
-        email=data.get('email', ''),
+        username=username,
+        full_name=full_name,
+        email=email,
         role=role,
         bank_id=bank_id,
         branch_id=branch_id,
         created_by=current_user.username
     )
-    user.set_password(data['password'])
+    user.set_password(password)
     db.session.add(user)
-    db.session.commit()
-    return jsonify({'message': 'User created successfully', 'user': user.to_dict()}), 201
 
+    # ------------------------------
+    # Commit with field-specific unique constraint handling
+    # ------------------------------
+    try:
+        db.session.commit()
+    except IntegrityError as e:
+        db.session.rollback()
+        msg = str(e.orig).lower()
+        if 'username' in msg:
+            return jsonify({'error': 'Username already exists'}), 400
+        elif 'email' in msg:
+            return jsonify({'error': 'Email already exists'}), 400
+        elif 'full_name' in msg:
+            return jsonify({'error': 'Full name already exists'}), 400
+        else:
+            return jsonify({'error': 'A unique constraint was violated'}), 400
+
+    # ------------------------------
+    # Send credentials email (optional)
+    # ------------------------------
+    if email:
+        try:
+            msg = Message(
+                subject="Your CoNetX Account Credentials",
+                recipients=[email],
+                body=(
+                    f"Hello {user.full_name or user.username},\n\n"
+                    "Your CoNetX account has been created successfully.\n\n"
+                    f"Username: {user.username}\n"
+                    f"Password: {password}\n"
+                    f"Role: {user.role}\n\n"
+                    "You can now log in at: https://www.conetx.in\n\n"
+                    "Please change your password after your first login.\n\n"
+                    f"Best regards,\n{current_user.full_name or current_user.username}"
+                )
+            )
+            mail.send(msg)
+        except Exception as e:
+            app.logger.error(f"Failed to send user credentials email: {e}")
+
+    return jsonify({
+        'message': 'User created successfully',
+        'user': user.to_dict(),
+        'email_notice': f"Credentials sent to {email}" if email else "No valid email provided"
+    }), 201
+
+
+# ======================================
+# Update User Endpoint
+# ======================================
 @app.route('/api/admin/users/<int:user_id>', methods=['PUT'])
 @role_required('admin', 'manager')
 def update_user(current_user, user_id):
+    user = User.query.get_or_404(user_id)
     data = request.get_json() or {}
-    user = User.query.get(user_id)
-    if not user:
-        return jsonify({'error': 'User not found'}), 404
 
-    # Managers can only edit users in their branch and cannot assign admin role
-    if current_user.role == 'manager':
-        if user.branch_id != current_user.branch_id:
-            return jsonify({'error': 'Managers can only edit users in their branch'}), 403
-        if 'role' in data and data['role'] == 'admin':
-            return jsonify({'error': 'Managers cannot assign admin role'}), 403
+    # ------------------------------
+    # Prevent non-admins from modifying admins
+    # ------------------------------
+    if current_user.role == 'manager' and user.role == 'admin':
+        return jsonify({'error': 'Managers cannot modify admin users'}), 403
 
-    # Admin can update everything
-    for field in ['full_name', 'email', 'role', 'bank_id', 'branch_id']:
+    # ------------------------------
+    # Track password change
+    # ------------------------------
+    old_password_hash = user.password_hash
+
+    # ------------------------------
+    # Update allowed fields
+    # ------------------------------
+    allowed_fields = ['full_name', 'email', 'role', 'bank_id', 'branch_id']
+    for field in allowed_fields:
         if field in data:
-            setattr(user, field, data[field])
+            setattr(user, field, data[field].strip() if isinstance(data[field], str) else data[field])
+
+    # Password change
     if 'password' in data and data['password']:
         user.set_password(data['password'])
-    user.modified_by = current_user.username
-    db.session.commit()
-    return jsonify({'message': 'User updated successfully', 'user': user.to_dict()}), 200
 
+    # ------------------------------
+    # Enforce branch-level limits if role changed
+    # ------------------------------
+    max_managers = app.config.get('MAX_MANAGERS_PER_BRANCH', 1)
+    max_users = app.config.get('MAX_USERS_PER_BRANCH', 3)
+
+    if user.role == 'manager':
+        manager_count = User.query.filter(
+            User.branch_id == user.branch_id,
+            User.role == 'manager',
+            User.id != user.id
+        ).count()
+        if manager_count >= max_managers:
+            return jsonify({'error': f'Only {max_managers} manager(s) allowed per branch'}), 400
+
+    if user.role == 'user':
+        user_count = User.query.filter(
+            User.branch_id == user.branch_id,
+            User.role == 'user',
+            User.id != user.id
+        ).count()
+        if user_count >= max_users:
+            return jsonify({'error': f'Only {max_users} user(s) allowed per branch'}), 400
+
+    # ------------------------------
+    # Commit with unique constraint handling
+    # ------------------------------
+    try:
+        db.session.commit()
+    except IntegrityError as e:
+        db.session.rollback()
+        msg = str(e.orig).lower()
+        if 'username' in msg:
+            return jsonify({'error': 'Username already exists'}), 400
+        elif 'email' in msg:
+            return jsonify({'error': 'Email already exists'}), 400
+        elif 'full_name' in msg:
+            return jsonify({'error': 'Full name already exists'}), 400
+        else:
+            return jsonify({'error': 'A unique constraint was violated'}), 400
+
+    # ------------------------------
+    # Send email if password changed
+    # ------------------------------
+    if data.get('password') and user.password_hash != old_password_hash and user.email:
+        try:
+            msg = Message(
+                subject="Your CoNetX Password Was Updated",
+                recipients=[user.email],
+                body=(
+                    f"Hello {user.full_name or user.username},\n\n"
+                    "This is a confirmation that your CoNetX password has been changed.\n\n"
+                    "If you did NOT change your password, please contact your system administrator immediately.\n\n"
+                    f"Best regards,\n{current_user.full_name or current_user.username}\nCoNetX Administration"
+                )
+            )
+            mail.send(msg)
+        except Exception as e:
+            app.logger.error(f"Failed to send password update email: {e}")
+
+    return jsonify({'message': 'User updated successfully', 'user': user.to_dict()})
 
 @app.route('/api/admin/users/<int:user_id>', methods=['DELETE'])
 @role_required('admin', 'manager')
@@ -480,16 +645,24 @@ def delete_user(current_user, user_id):
     if not user:
         return jsonify({'error': 'User not found'}), 404
 
-    # prevent deleting superadmin by mistake
+    # ------------------------------
+    # Prevent deleting admin users by non-admins
+    # ------------------------------
     if user.role == 'admin' and current_user.role != 'admin':
         return jsonify({'error': 'Only admin can delete admin users'}), 403
 
-    if current_user.role == 'manager':
-        if user.branch_id != current_user.branch_id:
-            return jsonify({'error': 'Managers can only delete users in their branch'}), 403
+    # ------------------------------
+    # Managers can only delete users in their branch
+    # ------------------------------
+    if current_user.role == 'manager' and user.branch_id != current_user.branch_id:
+        return jsonify({'error': 'Managers can only delete users in their branch'}), 403
 
+    # ------------------------------
+    # Delete user
+    # ------------------------------
     db.session.delete(user)
     db.session.commit()
+
     return jsonify({'message': 'User deleted successfully'}), 200
 
 
@@ -499,17 +672,49 @@ def reset_password(current_user, user_id):
     user = User.query.get(user_id)
     if not user:
         return jsonify({'error': 'User not found'}), 404
-    new_password = request.json.get('password')
+
+    data = request.get_json() or {}
+    new_password = data.get('password')
     if not new_password:
         return jsonify({'error': 'Password required'}), 400
 
+    # Managers can only reset for their branch
     if current_user.role == 'manager' and user.branch_id != current_user.branch_id:
         return jsonify({'error': 'Managers can only reset passwords for users in their branch'}), 403
 
+    # Update password
     user.set_password(new_password)
     user.modified_by = current_user.username
     db.session.commit()
-    return jsonify({'message': f'Password for {user.username} reset successfully'}), 200
+
+    # Send notification email if possible
+    if user.email and "@" in user.email:
+        try:
+            msg = Message(
+                subject="Your CoNetX Password Has Been Reset",
+                recipients=[user.email],
+                body=(
+                    f"Hello {user.full_name or user.username},\n\n"
+                    f"Your CoNetX account password has been reset by an administrator ({current_user.full_name or current_user.username}).\n\n"
+                    f"Username: {user.username}\n"
+                    f"New Password: {new_password}\n\n"
+                    "You can now log in at: https://www.conetx.in/login\n\n"
+                    "For security, please change your password after logging in.\n\n"
+                    "If you did not request this password reset, contact your administrator immediately.\n\n"
+                    "Best regards,\n"
+                    f"{current_user.full_name or current_user.username}\n"
+                    "CoNetX Administration"
+                )
+            )
+            mail.send(msg)
+            app.logger.info(f"Password reset email sent to {user.email}")
+        except Exception as e:
+            app.logger.error(f"Failed to send reset password email to {user.email}: {e}")
+
+    return jsonify({
+        'message': f'Password for {user.username} reset successfully',
+        'email_notice': f"Notification sent to {user.email}" if user.email else "No valid email available"
+    }), 200
 
 # ==========================
 # Superadmin Banks & Branches Routes
@@ -815,66 +1020,97 @@ def search_loan_applications():
 @role_required('admin', 'manager', 'user')
 def create_loan(current_user):
     data = request.get_json() or {}
+
+    # ------------------------------
+    # Generate unique application ID
+    # ------------------------------
     last_app = LoanApplication.query.order_by(LoanApplication.id.desc()).first()
     new_id = 1 if not last_app else last_app.id + 1
-    application_id = f"LOAN{new_id:04d}"
+    application_id = f"CONETXLOAN{new_id:04d}"
 
-    try:
-        dob = format_date_for_backend(data.get('date_of_birth')) if data.get('date_of_birth') else None
-    except Exception as e:
-        return jsonify({'error': 'Invalid date_of_birth format'}), 400
+    # ------------------------------
+    # Validate and parse date_of_birth
+    # ------------------------------
+    dob = None
+    if data.get('date_of_birth'):
+        try:
+            dob = format_date_for_backend(data.get('date_of_birth'))
+        except Exception:
+            return jsonify({'error': 'Invalid date_of_birth format. Use YYYY-MM-DD'}), 400
 
+    # ------------------------------
+    # Required fields validation
+    # ------------------------------
+    required_fields = ['first_name', 'last_name', 'loan_type', 'loan_amount']
+    missing_fields = [f for f in required_fields if not data.get(f)]
+    if missing_fields:
+        return jsonify({'error': f"Missing required fields: {', '.join(missing_fields)}"}), 400
+
+    # ------------------------------
+    # Determine bank/branch based on role
+    # ------------------------------
     bank_id = data.get('bank_id')
     branch_id = data.get('branch_id')
 
-    # enforce branch/bank for manager and user as per rules:
-    if current_user.role == 'manager':
-        bank_id = current_user.bank_id
-        branch_id = current_user.branch_id
-    elif current_user.role == 'user':
-        # user must create loan under their own branch; fallback to provided or user's
+    if current_user.role == 'manager' or current_user.role == 'user':
+        # Managers and users are restricted to their own bank/branch
         bank_id = current_user.bank_id
         branch_id = current_user.branch_id
 
+    # ------------------------------
+    # Create LoanApplication instance
+    # ------------------------------
     try:
         application = LoanApplication(
             application_id=application_id,
-            first_name=data.get('first_name'),
-            last_name=data.get('last_name'),
-            mother_name=data.get('mother_name', ''),
-            father_name=data.get('father_name', ''),
-            gender=data.get('gender', 'Not Specified'),
+            first_name=data['first_name'].strip(),
+            last_name=data['last_name'].strip(),
+            mother_name=data.get('mother_name', '').strip(),
+            father_name=data.get('father_name', '').strip(),
+            gender=data.get('gender', 'Not Specified').strip(),
             date_of_birth=dob,
-            aadhar_number=data.get('aadhar_number'),
-            pan_number=data.get('pan_number', ''),
-            mobile_number=data.get('mobile_number', ''),
-            email=data.get('email', ''),
-            address=data.get('address', ''),
-            city=data.get('city', ''),
-            state=data.get('state', ''),
-            pincode=data.get('pincode', ''),
-            photo_url=data.get('photo_url', ''),
-            loan_type=data.get('loan_type', 'Personal'),
-            loan_amount=float(data.get('loan_amount', 0)) if data.get('loan_amount') else 0,
-            society_name=data.get('society_name', ''),
-            branch_name=data.get('branch_name', ''),
-            voter_id=data.get('voter_id', ''),
-            status=data.get('status', 'Due'),
-            remarks=data.get('remarks'),
-            branch_id=branch_id,
+            aadhar_number=data.get('aadhar_number', '').strip(),
+            pan_number=data.get('pan_number', '').strip(),
+            mobile_number=data.get('mobile_number', '').strip(),
+            email=data.get('email', '').strip(),
+            address=data.get('address', '').strip(),
+            city=data.get('city', '').strip(),
+            state=data.get('state', '').strip(),
+            pincode=data.get('pincode', '').strip(),
+            photo_url=data.get('photo_url', '').strip(),
+            loan_type=data['loan_type'].strip(),
+            loan_amount=float(data['loan_amount']),
+            society_name=data.get('society_name', '').strip(),
+            branch_name=data.get('branch_name', '').strip(),
+            voter_id=data.get('voter_id', '').strip(),
+            status=data.get('status', 'Due').strip(),
+            remarks=data.get('remarks', '').strip(),
             bank_id=bank_id,
+            branch_id=branch_id,
             created_by=current_user.username,
             created_by_user_id=current_user.id
         )
+
         db.session.add(application)
         db.session.commit()
+    except IntegrityError as e:
+        db.session.rollback()
+        # Handle common DB integrity issues
+        if 'NOT NULL constraint failed' in str(e.orig):
+            return jsonify({'error': f'Missing required field in database: {str(e.orig)}'}), 400
+        return jsonify({'error': 'Database integrity error', 'details': str(e.orig)}), 400
     except Exception as e:
         db.session.rollback()
         app.logger.exception("Error creating loan application")
-        return jsonify({'error': 'Failed to create loan', 'details': str(e)}), 500
+        return jsonify({'error': 'Failed to create loan application', 'details': str(e)}), 500
 
-    return jsonify({'message': 'Loan created', 'application_id': application_id}), 201
-
+    # ------------------------------
+    # Success response
+    # ------------------------------
+    return jsonify({
+        'message': 'Loan application created successfully',
+        'application_id': application_id
+    }), 201
 
 @app.route('/api/loans/applications', methods=['GET'])
 @jwt_required()
@@ -989,56 +1225,72 @@ def serve_react_app(path):
 def create_contact_message():
     """
     Public endpoint for website visitors to send messages.
-    Saves to database and emails admin.
+    Saves to DB, captures IP/User-Agent, and emails admin.
     """
     data = request.get_json() or {}
     name = data.get('name')
     email = data.get('email')
     message = data.get('message')
+    phone = data.get('phone', '')
+    subject = data.get('subject', 'General Inquiry')
 
     if not name or not email or not message:
         return jsonify({'error': 'Name, email, and message are required.'}), 400
 
+    ip_address = request.remote_addr
+    user_agent = request.headers.get('User-Agent', '')
+
     try:
         # Save message
-        contact = ContactMessage(name=name, email=email, message=message)
+        contact = ContactMessage(
+            name=name,
+            email=email,
+            phone=phone,
+            subject=subject,
+            message=message,
+            ip_address=ip_address,
+            user_agent=user_agent
+        )
         db.session.add(contact)
         db.session.commit()
 
-        # Send email notification to admin
+        # Send email to admin
         try:
-            admin_email = "admin@cooperativebanknetwork.com"
             msg = Message(
                 subject=f"New Contact Message from {name}",
-                recipients=[admin_email],
+                recipients=[ADMIN_EMAIL],
                 body=(
                     f"You have received a new contact message:\n\n"
                     f"Name: {name}\n"
                     f"Email: {email}\n"
+                    f"Phone: {phone}\n"
+                    f"Subject: {subject}\n"
                     f"Message:\n{message}\n\n"
-                    f"View all messages in your admin dashboard."
+                    f"IP: {ip_address}\nUser-Agent: {user_agent}\n"
+                    f"— CoNetX Notification"
                 )
             )
             mail.send(msg)
-            # Send acknowledgment to user
+
+            # Send acknowledgment email to user
             ack = Message(
-                subject="Thank you for contacting ConNetX",
+                subject="We have received your message - CoNetX",
                 recipients=[email],
                 body=(
-                    f"Dear {name},\n\n"
-                    "Thank you for reaching out to the ConNetX. "
-                    "We have received your message and will get back to you soon.\n\n"
-                    "Warm regards,\n"
-                    "ConNetX Team"
+                    f"Hello {name},\n\n"
+                    "Thank you for contacting CoNetX. We have received your message:\n"
+                    f"\"{message[:200]}...\"\n\n"
+                    "Our team will reach out soon.\n\n"
+                    "Best regards,\n"
+                    "CoNetX Team"
                 )
             )
             mail.send(ack)
 
-            app.logger.info(f"Contact email sent to {admin_email}")
         except Exception as e:
-            app.logger.error(f"Failed to send contact email: {e}")
+            app.logger.error(f"Email sending failed: {e}")
 
-        return jsonify({'message': 'Message received successfully.'}), 201
+        return jsonify({'message': 'Message received successfully!'}), 201
 
     except Exception as e:
         db.session.rollback()
@@ -1051,21 +1303,30 @@ def create_contact_message():
 def list_contact_messages(current_user):
     """
     Admin/Manager endpoint to view all contact messages.
-    Supports pagination and search.
+    Supports pagination, sorting, and search.
     """
     page = int(request.args.get('page', 1))
     limit = int(request.args.get('limit', 20))
     search = request.args.get('search', '')
+    sort = request.args.get('sort', 'created_at_desc')
 
     query = ContactMessage.query
+
     if search:
         query = query.filter(
             (ContactMessage.name.ilike(f'%{search}%')) |
             (ContactMessage.email.ilike(f'%{search}%')) |
+            (ContactMessage.phone.ilike(f'%{search}%')) |
+            (ContactMessage.subject.ilike(f'%{search}%')) |
             (ContactMessage.message.ilike(f'%{search}%'))
         )
 
-    messages, total = paginate_query(query.order_by(ContactMessage.created_at.desc()), page, limit)
+    if sort == 'created_at_asc':
+        query = query.order_by(ContactMessage.created_at.asc())
+    else:
+        query = query.order_by(ContactMessage.created_at.desc())
+
+    messages, total = paginate_query(query, page, limit)
     return jsonify({
         'data': [m.to_dict() for m in messages],
         'page': page,
@@ -1079,7 +1340,7 @@ def list_contact_messages(current_user):
 @role_required('admin', 'manager')
 def update_contact_status(current_user, message_id):
     """
-    Mark message as Read or Unread (admin or manager only)
+    Mark message as Read or Unread
     """
     data = request.get_json() or {}
     status = data.get('status')
@@ -1096,7 +1357,7 @@ def update_contact_status(current_user, message_id):
 
 
 @app.route('/api/contact/<int:message_id>', methods=['DELETE'])
-@role_required('admin',)
+@role_required('admin')
 def delete_contact_message(current_user, message_id):
     """
     Admin-only: delete contact messages
@@ -1109,15 +1370,94 @@ def delete_contact_message(current_user, message_id):
     db.session.commit()
     return jsonify({'message': 'Message deleted successfully'}), 200
 
+# ------------------------------
+# ✅ Forgot Password Endpoint
+# ------------------------------
+@app.route('/api/auth/forgot-password', methods=['POST'])
+def forgot_password():
+    data = request.get_json()
+    email = data.get('email')
+    if not email:
+        return jsonify({'error': 'Email is required'}), 400
+
+    user = User.query.filter_by(email=email.strip()).first()
+    if not user:
+        return jsonify({'error': 'No account found with that email'}), 404
+
+    token = pyjwt.encode(
+        {
+            "email": email.strip(),
+            "exp": datetime.utcnow() + timedelta(hours=1)
+        },
+        str(app.config['SECRET_KEY']),
+        algorithm='HS256'
+    )
+
+    reset_link = f"http://localhost:5173/reset-password/{token}"
+
+    send_email(
+        to_email=email,
+        subject="Password Reset Request",
+        body=f"Click the link below to reset your password:\n\n{reset_link}\n\nThis link will expire in 1 hour.",
+    )
+
+    return jsonify({'message': 'Password reset link sent to your email.'}), 200
+
+
+# ------------------------------
+# ✅ Reset Password Endpoint (with token)
+# ------------------------------
+@app.route('/api/auth/reset-password/<token>', methods=['POST'])
+def reset_password_with_token(token):
+    try:
+        data = request.get_json()
+        password = data.get('password')
+
+        if not password:
+            return jsonify({'error': 'Password is required'}), 400
+
+        decoded = pyjwt.decode(token, str(app.config['SECRET_KEY']), algorithms=['HS256'])
+        email = decoded.get('email')
+
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        user.set_password(password)
+        db.session.commit()
+
+        return jsonify({'message': 'Password reset successful'}), 200
+
+    except pyjwt.ExpiredSignatureError:
+        return jsonify({'error': 'Token expired'}), 400
+    except pyjwt.InvalidTokenError:
+        return jsonify({'error': 'Invalid token'}), 400
+
+
+    return jsonify({'message': 'Password reset link sent to your email'}), 200
+
+
+def generate_reset_token(email):
+    payload = {'email': email, 'exp': datetime.utcnow() + timedelta(minutes=15)}
+    return pyjwt.encode(payload, app.config['SECRET_KEY'], algorithm='HS256')
+
+
+def verify_reset_token(token):
+    try:
+        decoded = pyjwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+        return decoded.get('email')
+    except pyjwt.ExpiredSignatureError:
+        return None
+    except pyjwt.InvalidTokenError:
+        return None
 
 # ==========================
 # Run Server
 # ==========================
 if __name__ == '__main__':
     print("="*60)
-    print("ConNetX - BACKEND SERVER")
+    print("CoNetX - BACKEND SERVER")
     print("="*60)
     print("Server starting at: http://localhost:5000")
-    print("Demo Login → admin = admin / admin@123")
     print("="*60)
     app.run(debug=True, host='0.0.0.0', port=5000)

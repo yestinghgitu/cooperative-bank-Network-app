@@ -143,7 +143,7 @@ const Terms = () => {
             level="body-md"
             sx={{ color: "primary.solidBg", fontWeight: "md" }}
           >
-            support@cooperativebanknetwork.com
+            conetx.notifications@gmail.com
           </Typography>
         </Stack>
       </Sheet>

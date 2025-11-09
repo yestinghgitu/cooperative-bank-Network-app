@@ -1,4 +1,9 @@
 # utils.py
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import os
+
 def mask_sensitive_info(data: dict) -> dict:
     """
     Masks sensitive fields like aadhar, pan, mobile, email.
@@ -23,3 +28,24 @@ def mask_sensitive_info(data: dict) -> dict:
             masked['email'] = f"{masked_name}@{domain}"
 
     return masked
+
+def send_email(to_email, subject, body):
+    sender_email = os.getenv("EMAIL_USER", "your_email@example.com")
+    sender_password = os.getenv("EMAIL_PASS", "yourpassword")
+    smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
+    smtp_port = int(os.getenv("SMTP_PORT", 587))
+
+    msg = MIMEMultipart()
+    msg["From"] = sender_email
+    msg["To"] = to_email
+    msg["Subject"] = subject
+    msg.attach(MIMEText(body, "html"))
+
+    try:
+        with smtplib.SMTP(smtp_server, smtp_port) as server:
+            server.starttls()
+            server.login(sender_email, sender_password)
+            server.send_message(msg)
+        print(f"✅ Email sent to {to_email}")
+    except Exception as e:
+        print(f"❌ Error sending email: {e}")

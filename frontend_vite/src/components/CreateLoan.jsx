@@ -16,7 +16,6 @@ import {
   ModalDialog,
   ModalClose,
 } from "@mui/joy";
-import SelectSearch from "react-select";
 import { motion, AnimatePresence } from "framer-motion";
 import { loanAPI, uploadAPI, authAPI, superAdminAPI } from "../services/api";
 import { jwtDecode } from "jwt-decode";
@@ -288,7 +287,7 @@ const CreateLoan = () => {
     }
   };
 
-  // ------------------ JSX ------------------
+  // ------------------ JSX Form ------------------
   return (
     <Box sx={{ p: 3 }}>
       <Button
@@ -313,7 +312,6 @@ const CreateLoan = () => {
 
           <form onSubmit={handleSubmit}>
             <Stack spacing={1.6}>
-              {/* Name */}
               <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
                 <Input
                   name="first_name"
@@ -333,7 +331,6 @@ const CreateLoan = () => {
                 />
               </Stack>
 
-              {/* Gender & DOB */}
               <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
                 <Select
                   name="gender"
@@ -359,7 +356,6 @@ const CreateLoan = () => {
 
               <Divider />
 
-              {/* Contact Info with validation */}
               <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
                 <Box sx={{ flex: 1 }}>
                   <Input
@@ -369,7 +365,7 @@ const CreateLoan = () => {
                     onChange={handleChange}
                     required
                     variant="soft"
-                    error={Boolean(validation.aadhar_number)}
+                    error={validation.aadhar_number ? true : undefined}
                   />
                   {validation.aadhar_number && (
                     <Typography level="body-xs" color="danger">
@@ -385,7 +381,7 @@ const CreateLoan = () => {
                     value={form.pan_number}
                     onChange={handleChange}
                     variant="soft"
-                    error={Boolean(validation.pan_number)}
+                    error={validation.pan_number ? true : undefined}
                   />
                   {validation.pan_number && (
                     <Typography level="body-xs" color="danger">
@@ -402,7 +398,7 @@ const CreateLoan = () => {
                     onChange={handleChange}
                     required
                     variant="soft"
-                    error={Boolean(validation.mobile_number)}
+                    error={validation.mobile_number ? true : undefined}
                   />
                   {validation.mobile_number && (
                     <Typography level="body-xs" color="danger">
@@ -429,87 +425,66 @@ const CreateLoan = () => {
                 variant="soft"
               />
 
- <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
-  {/* State */}
-  <Autocomplete
-    placeholder="Select or Type State"
-    options={stateOptions.map((s) => s.label)}
-    value={form.state || ""}
-    freeSolo
-    onChange={(_, newValue) => {
-      const selectedState = allStates.find(
-        (st) => st.name === newValue || st.isoCode === newValue
-      );
-      setForm({ state: newValue || "", city: "", taluk: "", pincode: "" });
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
+                <Autocomplete
+                  placeholder="Select or Type State"
+                  options={stateOptions.map((s) => s.label)}
+                  value={form.state || ""}
+                  freeSolo
+                  onChange={(_, newValue) => {
+                    const selectedState = allStates.find(
+                      (st) => st.name === newValue || st.isoCode === newValue
+                    );
+                    setForm({ ...form, state: newValue || "", city: "", pincode: "" });
 
-      if (selectedState) {
-        const cities = getCitiesByState(selectedState.isoCode);
-        setCityOptions(cities);
-      } else {
-        setCityOptions([]);
-      }
-    }}
-    onInputChange={(_, newValue) => {
-      setForm({ ...form, state: newValue, city: "", taluk: "", pincode: "" });
-      setCityOptions([]);
-    }}
-    variant="soft"
-  />
+                    if (selectedState) {
+                      const cities = getCitiesByState(selectedState.isoCode);
+                      setCityOptions(cities);
+                    } else {
+                      setCityOptions([]);
+                    }
+                  }}
+                  onInputChange={(_, newValue) => {
+                    setForm({ ...form, state: newValue, city: "", pincode: "" });
+                    setCityOptions([]);
+                  }}
+                  variant="soft"
+                />
 
-  {/* City */}
-  <Autocomplete
-    placeholder="Select or Type City"
-    options={cityOptions.map((c) => c.label)}
-    value={form.city || ""}
-    freeSolo
-    onChange={(_, newValue) => {
-      const selectedCity = cityOptions.find((c) => c.label === newValue);
-      setForm({
-        ...form,
-        city: newValue || "",
-        taluk: selectedCity?.taluk || "", // Autofill Taluk if available
-      });
-    }}
-    onInputChange={(_, newValue) => {
-      setForm({ ...form, city: newValue, taluk: "" });
-    }}
-    variant="soft"
-    disabled={!form.state}
-  />
+                <Autocomplete
+                  placeholder="Select or Type City"
+                  options={cityOptions.map((c) => c.label)}
+                  value={form.city || ""}
+                  freeSolo
+                  onChange={(_, newValue) => {
+                    setForm({ ...form, city: newValue || "" });
+                  }}
+                  onInputChange={(_, newValue) => {
+                    setForm({ ...form, city: newValue });
+                  }}
+                  variant="soft"
+                  disabled={!form.state}
+                />
 
-  {/* Taluk */}
-  {/* <Input
-    name="taluk"
-    placeholder="Taluk / Sub-District (optional)"
-    value={form.taluk || ""}
-    onChange={(e) =>
-      setForm({ ...form, taluk: e.target.value })
-    }
-    variant="soft"
-  /> */}
-
-  {/* Pincode */}
-  <Box sx={{ flex: 1 }}>
-    <Input
-      name="pincode"
-      placeholder="Pincode"
-      value={form.pincode}
-      onChange={handleChange}
-      variant="soft"
-      error={Boolean(validation.pincode)}
-    />
-    {validation.pincode && (
-      <Typography level="body-xs" color="danger">
-        {validation.pincode}
-      </Typography>
-    )}
-  </Box>
-</Stack>
-
+                <Box sx={{ flex: 1 }}>
+                  <Input
+                    name="pincode"
+                    placeholder="Pincode"
+                    value={form.pincode}
+                    onChange={handleChange}
+                    variant="soft"
+                    error={validation.pincode ? true : undefined}
+                  />
+                  {validation.pincode && (
+                    <Typography level="body-xs" color="danger">
+                      {validation.pincode}
+                    </Typography>
+                  )}
+                </Box>
+              </Stack>
 
               <Divider />
 
-              {/* Society / Branch dropdowns */}
               <Stack direction="column" spacing={1.5}>
                 {currentUser.role === "admin" ? (
                   <Select
@@ -574,7 +549,6 @@ const CreateLoan = () => {
 
               <Divider />
 
-              {/* Loan Info */}
               <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
                 <Select
                   name="loan_type"
@@ -601,7 +575,7 @@ const CreateLoan = () => {
                     onChange={handleChange}
                     required
                     variant="soft"
-                    error={Boolean(validation.loan_amount)}
+                    error={validation.loan_amount ? true : undefined}
                   />
                   {validation.loan_amount && (
                     <Typography level="body-xs" color="danger">
@@ -649,7 +623,6 @@ const CreateLoan = () => {
         </CardContent>
       </Card>
 
-      {/* ✅ Success Modal */}
       <AnimatePresence>
         {successModal && (
           <Modal open={successModal} onClose={() => setSuccessModal(false)}>
@@ -666,7 +639,7 @@ const CreateLoan = () => {
               >
                 <ModalClose variant="plain" />
                 <Typography level="h5" color="success" mb={1}>
-                  ✅ Loan Created Successfully!
+                  Loan Created Successfully!
                 </Typography>
                 <Typography level="body-md" mb={2}>
                   Loan ID:

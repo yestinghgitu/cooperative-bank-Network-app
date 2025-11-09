@@ -40,7 +40,7 @@ const NavBar = ({ userName, userRole, onLogout }) => {
     ["dashboard", "Home"],
     ["create-loan", "Create Loan"],
     ["view-loans", "Loans"],
-    ["search", "Search"],
+    ["loan-search", "Search"],
   ];
 
   const adminTools = [
@@ -58,7 +58,7 @@ const NavBar = ({ userName, userRole, onLogout }) => {
     },
     {
       view: "contact-messages",
-      label: "Messages",
+      label: "Contact Messages",
       desc: "Review and reply to inquiries",
       icon: <MessageSquare size={22} color="#d32f2f" />,
     },
@@ -160,7 +160,7 @@ const NavBar = ({ userName, userRole, onLogout }) => {
         height: "100%", // fits container height
         width: "auto",
         objectFit: "contain",
-        transform: "scale(1.9)", // visually enlarge logo without changing layout
+        transform: "scale(1.6)", // visually enlarge logo without changing layout
         transformOrigin: "left center",
         transition: "transform 0.3s ease",
         filter: "drop-shadow(0 2px 2px rgba(0,0,0,0.1))",

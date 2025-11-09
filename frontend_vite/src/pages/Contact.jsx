@@ -9,13 +9,22 @@ import {
   FormLabel,
   Input,
   Textarea,
+  Select,
+  Option,
   Snackbar,
   Alert,
   FormHelperText,
 } from "@mui/joy";
 
 const Contact = () => {
-  const [form, setForm] = useState({ name: "", email: "", message: "" });
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    subject: "",
+    category: "General Inquiry",
+    message: "",
+  });
   const [errors, setErrors] = useState({});
   const [snackbar, setSnackbar] = useState({ open: false, message: "", color: "success" });
   const [loading, setLoading] = useState(false);
@@ -27,23 +36,20 @@ const Contact = () => {
   const validateForm = () => {
     const newErrors = {};
 
-    if (!form.name.trim()) {
-      newErrors.name = "Name is required.";
-    } else if (form.name.length < 2) {
-      newErrors.name = "Name must be at least 2 characters.";
-    }
+    if (!form.name.trim()) newErrors.name = "Name is required.";
+    else if (form.name.length < 2) newErrors.name = "Name must be at least 2 characters.";
 
-    if (!form.email.trim()) {
-      newErrors.email = "Email is required.";
-    } else if (!validateEmail(form.email)) {
-      newErrors.email = "Invalid email format.";
-    }
+    if (!form.email.trim()) newErrors.email = "Email is required.";
+    else if (!validateEmail(form.email)) newErrors.email = "Invalid email format.";
 
-    if (!form.message.trim()) {
-      newErrors.message = "Message is required.";
-    } else if (form.message.length < 10) {
+    if (form.phone.length > 0 && !/^\+?[0-9]{7,15}$/.test(form.phone)) 
+      newErrors.phone = "Invalid phone number.";
+
+    if (!form.subject.trim()) newErrors.subject = "Subject is required.";
+
+    if (!form.message.trim()) newErrors.message = "Message is required.";
+    else if (form.message.length < 10)
       newErrors.message = "Message should be at least 10 characters long.";
-    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -54,9 +60,7 @@ const Contact = () => {
   // ----------------------------
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: "" })); // clear error when user edits
-    }
+    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }));
   };
 
   // ----------------------------
@@ -78,12 +82,20 @@ const Contact = () => {
 
       if (res.ok) {
         setSnackbar({ open: true, message: "Message sent successfully!", color: "success" });
-        setForm({ name: "", email: "", message: "" });
+        setForm({
+          name: "",
+          email: "",
+          phone: "",
+          subject: "",
+          category: "General Inquiry",
+          message: "",
+        });
         setErrors({});
       } else {
         throw new Error("Failed to send message");
       }
     } catch (err) {
+      console.error(err);
       setSnackbar({ open: true, message: "Error sending message.", color: "danger" });
     } finally {
       setLoading(false);
@@ -102,11 +114,7 @@ const Contact = () => {
         }}
       >
         {/* Title */}
-        <Typography
-          level="h3"
-          textAlign="center"
-          sx={{ color: "primary.plainColor", mb: 1 }}
-        >
+        <Typography level="h3" textAlign="center" sx={{ color: "primary.plainColor", mb: 1 }}>
           Contact Us
         </Typography>
         <Typography
@@ -114,11 +122,12 @@ const Contact = () => {
           textAlign="center"
           sx={{ mb: 4, color: "text.tertiary" }}
         >
-          We’d love to hear from you! Fill out the form below or email us.
+          We’d love to hear from you! Fill out the form below or email us directly.
         </Typography>
 
         {/* Contact Form */}
         <Stack spacing={2}>
+          {/* Name */}
           <FormControl error={!!errors.name}>
             <FormLabel>Your Name</FormLabel>
             <Input
@@ -131,6 +140,7 @@ const Contact = () => {
             {errors.name && <FormHelperText>{errors.name}</FormHelperText>}
           </FormControl>
 
+          {/* Email */}
           <FormControl error={!!errors.email}>
             <FormLabel>Email Address</FormLabel>
             <Input
@@ -144,6 +154,50 @@ const Contact = () => {
             {errors.email && <FormHelperText>{errors.email}</FormHelperText>}
           </FormControl>
 
+          {/* Phone */}
+          <FormControl error={!!errors.phone}>
+            <FormLabel>Phone Number</FormLabel>
+            <Input
+              placeholder="Enter your phone number"
+              variant="soft"
+              fullWidth
+              value={form.phone}
+              onChange={(e) => handleChange("phone", e.target.value)}
+            />
+            {errors.phone && <FormHelperText>{errors.phone}</FormHelperText>}
+          </FormControl>
+
+          {/* Subject */}
+          <FormControl error={!!errors.subject}>
+            <FormLabel>Subject</FormLabel>
+            <Input
+              placeholder="Enter subject"
+              variant="soft"
+              fullWidth
+              value={form.subject}
+              onChange={(e) => handleChange("subject", e.target.value)}
+            />
+            {errors.subject && <FormHelperText>{errors.subject}</FormHelperText>}
+          </FormControl>
+
+          {/* Category */}
+          <FormControl>
+            <FormLabel>Category</FormLabel>
+            <Select
+              variant="soft"
+              value={form.category}
+              onChange={(_, value) => handleChange("category", value)}
+            >
+              <Option value="General Inquiry">General Inquiry</Option>
+              <Option value="Support">Support</Option>
+              <Option value="Feedback">Feedback</Option>
+              <Option value="Loan Query">Loan Query</Option>
+              <Option value="Bug Report">Bug Report</Option>
+              <Option value="Other">Other</Option>
+            </Select>
+          </FormControl>
+
+          {/* Message */}
           <FormControl error={!!errors.message}>
             <FormLabel>Message</FormLabel>
             <Textarea
@@ -157,6 +211,7 @@ const Contact = () => {
             {errors.message && <FormHelperText>{errors.message}</FormHelperText>}
           </FormControl>
 
+          {/* Submit Button */}
           <Button
             color="primary"
             size="lg"
@@ -175,13 +230,8 @@ const Contact = () => {
         </Stack>
 
         {/* Footer Text */}
-        <Typography
-          level="body-sm"
-          textAlign="center"
-          sx={{ mt: 4, color: "text.tertiary" }}
-        >
-          Or email us directly at{" "}
-          <strong>support@cooperativebanknetwork.com</strong>
+        <Typography level="body-sm" textAlign="center" sx={{ mt: 4, color: "text.tertiary" }}>
+          Or email us directly at <strong>conetx.notifications@gmail.com</strong>
         </Typography>
       </Sheet>
 

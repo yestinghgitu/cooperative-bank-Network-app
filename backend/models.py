@@ -12,7 +12,7 @@ class User(db.Model):
     __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(80), unique=True, nullable=False)
+    username = db.Column(db.String(80), nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
 
     # Personal details
@@ -32,11 +32,23 @@ class User(db.Model):
     modified_by = db.Column(db.String(100), nullable=True)
 
     # Relationships
-    bank_rel = db.relationship('CooperativeBank', foreign_keys=[bank_id])
-    branch_rel = db.relationship('CooperativeBranch', foreign_keys=[branch_id])
+    bank_rel = db.relationship('CooperativeBank', foreign_keys=[bank_id], back_populates='users')
+    branch_rel = db.relationship('CooperativeBranch', foreign_keys=[branch_id], back_populates='users')
 
-    # reverse relationships
-    loan_applications = db.relationship('LoanApplication', backref='owner_user', lazy=True)
+    # Reverse relationships
+    loan_applications = db.relationship(
+        'LoanApplication',
+        back_populates='owner_user',
+        lazy=True,
+        overlaps="creator,created_loan_applications"
+    )
+
+    created_loan_applications = db.relationship(
+        'LoanApplication',
+        back_populates='creator',
+        lazy=True,
+        overlaps="loan_applications,owner_user"
+    )
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -62,9 +74,14 @@ class User(db.Model):
             'modified_by': self.modified_by
         }
 
+    __table_args__ = (
+        db.UniqueConstraint('username', name='uq_user_username'),
+        db.UniqueConstraint('email', name='uq_user_email'),
+        db.UniqueConstraint('full_name', name='uq_user_fullname'),
+    )
 
 # ========================
-# Cooperative Society Models
+# Cooperative Bank Model
 # ========================
 class CooperativeBank(db.Model):
     __tablename__ = 'cooperative_banks'
@@ -86,10 +103,10 @@ class CooperativeBank(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    branches = db.relationship('CooperativeBranch', backref='bank_rel', lazy=True)
+    branches = db.relationship('CooperativeBranch', back_populates='bank_rel', lazy=True)
     contacts = db.relationship('BankContact', backref='bank_rel', lazy=True)
-    users = db.relationship('User', backref='bank_rel_users', lazy=True)
-    loans = db.relationship('LoanApplication', backref='bank_rel', lazy=True)
+    users = db.relationship('User', back_populates='bank_rel', lazy=True)
+    loans = db.relationship('LoanApplication', back_populates='bank', lazy=True, overlaps="bank_rel,loans")
     services = db.relationship('BankService', backref='bank_rel', lazy=True)
     transactions = db.relationship('Transaction', backref='bank_rel', lazy=True)
 
@@ -112,6 +129,9 @@ class CooperativeBank(db.Model):
         }
 
 
+# ========================
+# Cooperative Branch Model
+# ========================
 class CooperativeBranch(db.Model):
     __tablename__ = 'cooperative_branches'
 
@@ -119,7 +139,7 @@ class CooperativeBranch(db.Model):
     bank_id = db.Column(db.Integer, db.ForeignKey('cooperative_banks.id'), nullable=False)
     branch_name = db.Column(db.String(255), nullable=False)
     branch_code = db.Column(db.String(50))
-    address = db.Column(db.String(255), nullable=True)
+    address = db.Column(db.String(255))
     district = db.Column(db.String(100), nullable=False)
     state = db.Column(db.String(100), nullable=False)
     ifsc_code = db.Column(db.String(20))
@@ -127,8 +147,10 @@ class CooperativeBranch(db.Model):
     manager_name = db.Column(db.String(100))
     status = db.Column(db.String(20), default='Active')
 
-    users = db.relationship('User', backref='branch_rel_users', lazy=True)
-    loans = db.relationship('LoanApplication', backref='branch_rel', lazy=True)
+    # Relationships
+    bank_rel = db.relationship('CooperativeBank', back_populates='branches')
+    users = db.relationship('User', back_populates='branch_rel', lazy=True)
+    loans = db.relationship('LoanApplication', back_populates='branch', lazy=True, overlaps="branch_rel,loans")
 
     def to_dict(self):
         return {
@@ -147,6 +169,9 @@ class CooperativeBranch(db.Model):
         }
 
 
+# ========================
+# Bank Contact Model
+# ========================
 class BankContact(db.Model):
     __tablename__ = 'bank_contacts'
 
@@ -167,23 +192,23 @@ class BankContact(db.Model):
             'phone_number': self.phone_number
         }
 
+
 # ========================
-# Loan Model (Updated for RBAC)
+# Loan Application Model (with overlaps fixed)
 # ========================
 class LoanApplication(db.Model):
     __tablename__ = 'loan_applications'
 
     id = db.Column(db.Integer, primary_key=True)
-
-    # Foreign Keys
     bank_id = db.Column(db.Integer, db.ForeignKey('cooperative_banks.id'))
     branch_id = db.Column(db.Integer, db.ForeignKey('cooperative_branches.id'))
-    created_by_user_id = db.Column(db.Integer, db.ForeignKey('users.id'))  # who created the record
+    created_by_user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
 
     # Relationships
-    bank = db.relationship('CooperativeBank', backref=db.backref('loan_applications', lazy=True))
-    branch = db.relationship('CooperativeBranch', backref=db.backref('loan_applications', lazy=True))
-    creator = db.relationship('User', backref=db.backref('created_loan_applications', lazy=True))
+    bank = db.relationship('CooperativeBank', back_populates='loans', overlaps="bank_rel,loans")
+    branch = db.relationship('CooperativeBranch', back_populates='loans', overlaps="branch_rel,loans")
+    owner_user = db.relationship('User', back_populates='loan_applications', overlaps="creator,created_loan_applications")
+    creator = db.relationship('User', back_populates='created_loan_applications', overlaps="loan_applications,owner_user")
 
     # Core Fields
     application_id = db.Column(db.String(20), unique=True, nullable=False)
@@ -205,8 +230,8 @@ class LoanApplication(db.Model):
     loan_type = db.Column(db.String(50), default='Personal')
     loan_amount = db.Column(db.Float, default=0)
     status = db.Column(db.String(20), default='Due')
-    society_name = db.Column(db.String(150))  # This will mirror bank_name
-    branch_name = db.Column(db.String(150))  # This will mirror branch_name
+    society_name = db.Column(db.String(150))
+    branch_name = db.Column(db.String(150))
     voter_id = db.Column(db.String(50))
     remarks = db.Column(db.String(255))
     created_by = db.Column(db.String(120))
@@ -216,9 +241,6 @@ class LoanApplication(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     lead_status = db.Column(db.String(50), default='Pending')
 
-    # ==========================
-    # Password Hashing Utilities
-    # ==========================
     def set_password(self, password):
         salt = bcrypt.gensalt()
         self.password_hash = bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
@@ -228,9 +250,6 @@ class LoanApplication(db.Model):
             return False
         return bcrypt.checkpw(password.encode('utf-8'), self.password_hash.encode('utf-8'))
 
-    # ==========================
-    # Serialization Helper
-    # ==========================
     def to_dict(self):
         return {
             'id': self.id,
@@ -268,7 +287,7 @@ class LoanApplication(db.Model):
 
 
 # ========================
-# Society Services
+# Bank Service Model
 # ========================
 class BankService(db.Model):
     __tablename__ = 'bank_services'
@@ -300,7 +319,7 @@ class BankService(db.Model):
 
 
 # ========================
-# Transactions
+# Transaction Model
 # ========================
 class Transaction(db.Model):
     __tablename__ = 'transactions'
@@ -322,22 +341,42 @@ class Transaction(db.Model):
             'timestamp': self.timestamp.isoformat() if self.timestamp else None
         }
 
+
+# ========================
+# Contact Message Model (Enhanced)
+# ========================
 class ContactMessage(db.Model):
     __tablename__ = 'contact_messages'
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(150), nullable=False)
     email = db.Column(db.String(150), nullable=False)
+    phone = db.Column(db.String(20))
+    subject = db.Column(db.String(200))
     message = db.Column(db.Text, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    category = db.Column(db.String(50), default='General Inquiry')
     status = db.Column(db.String(50), default='Unread')
+    admin_notes = db.Column(db.Text)
+    assigned_to = db.Column(db.String(150))
+    ip_address = db.Column(db.String(45))
+    user_agent = db.Column(db.String(255))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     def to_dict(self):
         return {
             'id': self.id,
             'name': self.name,
             'email': self.email,
+            'phone': self.phone,
+            'subject': self.subject,
+            'category': self.category,
             'message': self.message,
             'status': self.status,
-            'created_at': self.created_at.isoformat() if self.created_at else None
+            'admin_notes': self.admin_notes,
+            'assigned_to': self.assigned_to,
+            'ip_address': self.ip_address,
+            'user_agent': self.user_agent,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }

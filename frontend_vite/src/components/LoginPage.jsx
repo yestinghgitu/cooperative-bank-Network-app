@@ -86,37 +86,33 @@ const LoginPage = ({ onLogin }) => {
       >
         <CardContent>
           {/* Logo */}
-        {/* Logo */}
-<Box
-  sx={{
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    mb: 1,
-    mt: -0.5,
-  }}
->
-  <Box
-    component="img"
-    src={logo}
-    alt="CoNetX Logo"
-    sx={{
-      height: 70, // same height as navbar logo container
-      width: "auto",
-      objectFit: "contain",
-      transform: "scale(1.8)", // same scale as navbar logo
-      transformOrigin: "center",
-      transition: "transform 0.3s ease",
-      filter:
-        mode === "dark"
-          ? "brightness(1.1) drop-shadow(0 0 3px rgba(255,255,255,0.3))"
-          : "drop-shadow(0 1px 2px rgba(0,0,0,0.25))",
-    }}
-  />
-</Box>
-
-
-
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              mb: 1,
+              mt: -0.5,
+            }}
+          >
+            <Box
+              component="img"
+              src={logo}
+              alt="CoNetX Logo"
+              sx={{
+                height: 70,
+                width: "auto",
+                objectFit: "contain",
+                transform: "scale(1.8)",
+                transformOrigin: "center",
+                transition: "transform 0.3s ease",
+                filter:
+                  mode === "dark"
+                    ? "brightness(1.1) drop-shadow(0 0 3px rgba(255,255,255,0.3))"
+                    : "drop-shadow(0 1px 2px rgba(0,0,0,0.25))",
+              }}
+            />
+          </Box>
 
           <Typography level="body-sm" mb={1} color="neutral.500">
             Bringing cooperatives together — securely and digitally.
@@ -172,6 +168,23 @@ const LoginPage = ({ onLogin }) => {
               >
                 {loading ? <CircularProgress size="sm" /> : "Sign In"}
               </Button>
+
+              {/* Forgot Password Link */}
+              <Box sx={{ textAlign: "center", mt: 1 }}>
+                <Typography
+                  level="body-sm"
+                  component="a"
+                  href="/forgot-password"
+                  sx={{
+                    color: "primary.600",
+                    textDecoration: "underline",
+                    cursor: "pointer",
+                    "&:hover": { color: "primary.800" },
+                  }}
+                >
+                  Forgot password?
+                </Typography>
+              </Box>
             </Stack>
           </form>
 

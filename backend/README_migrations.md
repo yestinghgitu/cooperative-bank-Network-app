@@ -150,3 +150,8 @@ That way, every developer (or deployment) stays in sync with your database schem
 ## ✅ Done!
 
 You now have a complete Flask-Migrate setup that tracks schema evolution for your Cooperative Bank project.
+
+
+flask db stamp head
+flask db migrate -m "Fix relationship overlaps and sync schema"
+flask db upgrade

@@ -42,7 +42,7 @@ const ViewLoans = () => {
     society_name: true,
     branch_name: true,
     aadhar_number: true,
-    pan_number: true,
+    pan_number: false,
     mobile_number: true,
     created_at: true,
     created_by: true,
@@ -101,17 +101,11 @@ const ViewLoans = () => {
   };
 
   useEffect(() => {
+  const delayDebounce = setTimeout(() => {
     fetchLoans();
-  }, [page]);
-
-  // Search (trigger server-side)
-  useEffect(() => {
-    const delayDebounce = setTimeout(() => {
-      setPage(1);
-      fetchLoans();
-    }, 500);
-    return () => clearTimeout(delayDebounce);
-  }, [searchTerm]);
+  }, 400);
+  return () => clearTimeout(delayDebounce);
+}, [page, searchTerm]);
 
   // const maskAadhar = (num) => (num ? num.replace(/\d(?=\d{4})/g, "•") : "—");
   // const maskPan = (num) => (num ? num.replace(/\w(?=\w{4})/g, "•") : "—");
