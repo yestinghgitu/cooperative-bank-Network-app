@@ -30,10 +30,10 @@ def mask_sensitive_info(data: dict) -> dict:
     return masked
 
 def send_email(to_email, subject, body):
-    sender_email = os.getenv("EMAIL_USER", "your_email@example.com")
-    sender_password = os.getenv("EMAIL_PASS", "yourpassword")
-    smtp_server = os.getenv("SMTP_SERVER", "smtp.gmail.com")
-    smtp_port = int(os.getenv("SMTP_PORT", 587))
+    sender_email = os.getenv("MAIL_USERNAME", "your_email@example.com")
+    sender_password = os.getenv("MAIL_PASSWORD", "yourpassword")
+    smtp_server = os.getenv("MAIL_SERVER", "smtp.gmail.com")
+    smtp_port = int(os.getenv("MAIL_PORT", 587))
 
     msg = MIMEMultipart()
     msg["From"] = sender_email
@@ -46,6 +46,6 @@ def send_email(to_email, subject, body):
             server.starttls()
             server.login(sender_email, sender_password)
             server.send_message(msg)
-        print(f"✅ Email sent to {to_email}")
+        print(f"Email sent to {to_email}")
     except Exception as e:
-        print(f"❌ Error sending email: {e}")
+        print(f"Error sending email: {e}")

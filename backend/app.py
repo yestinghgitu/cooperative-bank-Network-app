@@ -496,7 +496,7 @@ def sync_bank_services():
 
 with app.app_context():
     create_tables_and_data()
-    sync_bank_services()
+    #sync_bank_services()
 
 # ==========================
 # Health Check
@@ -596,8 +596,8 @@ def get_dashboard_stats():
 
     else:
         # Regular user: show only their own loan stats
-        user_loans = LoanApplication.query.filter_by(id=current_user.id).count()
-        user_pending = LoanApplication.query.filter_by(id=current_user.id).filter(LoanApplication.status != 'Running').count()
+        user_loans = LoanApplication.query.filter_by(created_by_user_id = current_user.id).count()
+        user_pending = LoanApplication.query.filter_by(created_by_user_id = current_user.id).filter(LoanApplication.status != 'Running').count()
 
         stats['user_stats'] = {
             'user_id': current_user.id,
@@ -1599,7 +1599,6 @@ def forgot_password():
     # Dynamically get frontend base URL from current request
     frontend_base_url = request.host_url.rstrip('/')  # removes trailing slash
     reset_link = f"{frontend_base_url}/reset-password/{token}"
-
     send_email(
         to_email=email,
         subject="Password Reset Request",
