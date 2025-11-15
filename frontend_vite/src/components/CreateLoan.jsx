@@ -641,21 +641,6 @@ const CreateLoan = () => {
                 <Typography level="h5" color="success" mb={1}>
                   Loan Created Successfully!
                 </Typography>
-                <Typography level="body-md" mb={2}>
-                  Loan ID:
-                </Typography>
-                <Typography
-                  level="h4"
-                  sx={{
-                    fontWeight: "bold",
-                    color: "var(--joy-palette-success-700)",
-                  }}
-                >
-                  {applicationId}
-                </Typography>
-                <Typography level="body-sm" mt={2} color="neutral">
-                  Closing automatically in 2 seconds...
-                </Typography>
               </ModalDialog>
             </motion.div>
           </Modal>

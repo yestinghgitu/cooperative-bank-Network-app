@@ -41,11 +41,9 @@ const Dashboard = () => {
 
   const slides = [
     {
-      title: "Empowering Cooperatives",
+      title: "Empowering Cooperative",
       subtitle:
         "Connecting communities through shared growth, transparency, and trust.",
-      bgImage:
-        "https://images.unsplash.com/photo-1573164574394-20b1c7dc2db0?auto=format&fit=crop&w=1400&q=80",
       gradient:
         "linear-gradient(to bottom, rgba(0,0,0,0.45), rgba(0,0,0,0.25))",
     },
@@ -53,8 +51,6 @@ const Dashboard = () => {
       title: "Financial Inclusion for All",
       subtitle:
         "Providing accessible, member-driven banking services across the network.",
-      bgImage:
-        "https://images.unsplash.com/photo-1556742400-b5d06e5f0f22?auto=format&fit=crop&w=1400&q=80",
       gradient:
         "linear-gradient(to bottom, rgba(0,123,94,0.45), rgba(0,123,94,0.25))",
     },
@@ -62,8 +58,6 @@ const Dashboard = () => {
       title: "Smart Loan Management",
       subtitle:
         "Digitally streamline your cooperative’s loan processes and member tracking.",
-      bgImage:
-        "https://images.unsplash.com/photo-1600166892576-fb1ec6cd91b0?auto=format&fit=crop&w=1400&q=80",
       gradient:
         "linear-gradient(to bottom, rgba(217,119,6,0.45), rgba(217,119,6,0.25))",
     },
@@ -71,8 +65,6 @@ const Dashboard = () => {
       title: "Secure and Transparent Operations",
       subtitle:
         "Ensure compliance and member confidence through reliable audit systems.",
-      bgImage:
-        "https://images.unsplash.com/photo-1612832021610-239b8a4b5943?auto=format&fit=crop&w=1400&q=80",
       gradient:
         "linear-gradient(to bottom, rgba(126,34,206,0.45), rgba(126,34,206,0.25))",
     },
@@ -415,39 +407,113 @@ const Dashboard = () => {
         </Grid>
       </Card>
 
-      {/* Services */}
-      <Box sx={{ mb: 6 }}>
-        <Typography level="h5" fontWeight={600} mb={3}>
-          Platform Services
-        </Typography>
-        <Grid container spacing={3}>
-          {services.map((service) => (
-            <Grid key={service.id} xs={12} sm={6} md={4}>
-              <Card
-                variant="outlined"
+ {/* Services Section */}
+<Box sx={{ mb: 6 }}>
+  <Typography level="h5" fontWeight={700} mb={2}>
+    Platform Services
+  </Typography>
+
+  <Grid container spacing={2}>
+    {services.map((service) => {
+      const isUpcoming = service.service_type === "Upcoming";
+      const isMembership = service.service_type === "Membership";
+      const isAudit = service.service_type === "Audit";
+
+      // Color logic for app theme
+      const colorMap = {
+        Membership: "primary",
+        Audit: "danger",
+        Upcoming: "warning",
+      };
+
+      const serviceColor = colorMap[service.service_type] || "neutral";
+
+      return (
+        <Grid key={service.id} xs={12} sm={6} md={4}>
+          <Card
+            variant="outlined"
+            sx={{
+              borderRadius: "lg",
+              p: 1.6,
+              minHeight: 110,
+              transition: "0.25s ease",
+              borderColor: `${serviceColor}.300`,
+              background: isUpcoming ? "warning.softBg" : "background.surface",
+              "&:hover": {
+                boxShadow: "md",
+                transform: "translateY(-3px)",
+              },
+            }}
+          >
+            <Stack direction="row" spacing={2}>
+
+              {/* Icon */}
+              <Box
                 sx={{
+                  width: 42,
+                  height: 42,
                   borderRadius: "md",
-                  boxShadow: "sm",
-                  transition: "all 0.3s ease",
-                  "&:hover": { boxShadow: "lg", transform: "translateY(-4px)" },
+                  bgcolor: `${serviceColor}.softBg`,
+                  color: `${serviceColor}.700`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "1.4rem",
+                  flexShrink: 0,
                 }}
               >
-                <Stack direction="row" spacing={2} alignItems="center" sx={{ p: 2 }}>
-                  <Box sx={{ color: `${service.color}.main` }}>{service.icon}</Box>
-                  <Box>
-                    <Typography level="body-md" fontWeight={600}>
-                      {service.name}
-                    </Typography>
-                    <Typography level="body-sm" color="neutral.500">
-                      {service.description}
-                    </Typography>
-                  </Box>
+                {service.icon}
+              </Box>
+
+              <Box sx={{ flex: 1 }}>
+                {/* Title + Status */}
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.3 }}>
+                  <Typography level="body-md" fontWeight={600}>
+                    {service.name}
+                  </Typography>
+
+                  <Chip
+                    size="sm"
+                    variant={isUpcoming ? "soft" : "solid"}
+                    color={serviceColor}
+                    sx={{
+                      fontSize: "0.65rem",
+                      fontWeight: 600,
+                      px: 0.5,
+                      height: 18,
+                    }}
+                  >
+                    {isUpcoming ? "Upcoming" : "Active"}
+                  </Chip>
                 </Stack>
-              </Card>
-            </Grid>
-          ))}
+
+                {/* Description */}
+                <Typography
+                  level="body-sm"
+                  color="neutral.600"
+                  sx={{ lineHeight: 1.3 }}
+                >
+                  {service.description}
+                </Typography>
+
+                {/* Processing Time */}
+                <Typography
+                  level="body-xs"
+                  color="neutral.500"
+                  sx={{ mt: 0.6, fontStyle: "italic" }}
+                >
+                  {service.processing_time}
+                </Typography>
+              </Box>
+            </Stack>
+          </Card>
         </Grid>
-      </Box>
+      );
+    })}
+  </Grid>
+</Box>
+
+
 
       {/* Footer */}
       <Box

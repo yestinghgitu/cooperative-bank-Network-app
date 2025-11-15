@@ -34,7 +34,6 @@ import re
 from sqlalchemy import and_
 from sqlalchemy.exc import IntegrityError
 
-
 # ==========================
 # Initialization
 # ==========================
@@ -217,83 +216,287 @@ def paginate_query(query, page, limit):
     total = query.count()
     items = query.offset((page - 1) * limit).limit(limit).all()
     return items, total
-
 # ==========================
 # Database Initialization
 # ==========================
 def create_tables_and_data():
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-    db.create_all()
 
-    # create sample bank & branch
-    bank = CooperativeBank.query.filter_by(bank_name='Sample Cooperative Bank').first()
-    if not bank:
-        bank = CooperativeBank(
-            bank_name='Sample Cooperative Bank',
-            registration_number='REG123456',
-            head_office_address='123 Bank Street, City, State',
-            district='Sample District',
-            state='Sample State'
-        )
-        db.session.add(bank)
-        db.session.commit()
-        print("Sample bank created.")
+    with app.app_context():
+        db.create_all()
 
-    branch = CooperativeBranch.query.filter_by(branch_name='Main Branch', bank_id=bank.id).first()
-    if not branch:
-        branch = CooperativeBranch(
-            bank_id=bank.id,
+        # -------------------------
+        # Create default bank
+        # -------------------------
+        bank = CooperativeBank.query.filter_by(
+            bank_name='Sample Cooperative Bank'
+        ).first()
+
+        if not bank:
+            bank = CooperativeBank(
+                bank_name='Sample Cooperative Bank',
+                registration_number='REG123456',
+                head_office_address='123 Bank Street, City, State',
+                district='Sample District',
+                state='Sample State'
+            )
+            db.session.add(bank)
+            db.session.commit()
+            print("Sample bank created.")
+
+        # -------------------------
+        # Create default branch
+        # -------------------------
+        branch = CooperativeBranch.query.filter_by(
             branch_name='Main Branch',
-            branch_code='MB001',
-            address='456 Branch Avenue, City, State',
-            district='Sample District',
-            state='Sample State'
-        )
-        db.session.add(branch)
-        db.session.commit()
-        print("Sample branch created.")
+            bank_id=bank.id
+        ).first()
 
-    # Default superadmin
-    admin = User.query.filter_by(username='admin').first()
-    if not admin:
-        admin = User(
-            username='admin',
-            full_name='Administrator',
-            email='admin@bank.com',
-            role='admin',
-            bank_id=bank.id,
-            branch_id=branch.id,
-            created_by='system'
-        )
-        admin.set_password('2bck$@1157')
-        db.session.add(admin)
-        db.session.commit()
-        print("Admin created: username=admin password=*******")
-    else:
-        print("admin already exists.")
+        if not branch:
+            branch = CooperativeBranch(
+                bank_id=bank.id,
+                branch_name='Main Branch',
+                branch_code='MB001',
+                address='456 Branch Avenue, City, State',
+                district='Sample District',
+                state='Sample State'
+            )
+            db.session.add(branch)
+            db.session.commit()
+            print("Sample branch created.")
 
-    # Default bank services
-    if BankService.query.count() == 0:
-        default_services = [
-            BankService(service_type='Membership', name='Member Registration',
-                        description='Register new members to your CoNetX.',
-                        processing_time='Immediate',
-                        features='Create member profile\nAssign membership ID\nCapture KYC details'),
-            BankService(service_type='Loans', name='Loan Repayment & Tracking',
-                        description='Monitor Loan repayment and overdue notices for members.',
-                        processing_time='Ongoing',
-                        features='Track due payments\nSend reminders\nGenerate repayment reports'),
-            BankService(service_type='Audit', name='Audit & Compliance',
-                        description='Ensure all transactions and loans follow regulations.',
-                        processing_time='Ongoing',
-                        features='Regular audit reports\nCompliance checks\nTransaction validation')
-        ]
-        db.session.add_all(default_services)
-        db.session.commit()
-        print("✅ Default bank services added")
+        # -------------------------
+        # Create default Super Admin
+        # -------------------------
+        admin = User.query.filter_by(username='admin').first()
+
+        if not admin:
+            admin = User(
+                username='admin',
+                full_name='Administrator',
+                email='conetx.notifications@gmail.com',
+                role='admin',
+                bank_id=bank.id,
+                branch_id=branch.id,
+                created_by='system'
+            )
+            admin.set_password('2bck$@1157')
+            db.session.add(admin)
+            db.session.commit()
+            print("Admin created: username=admin password=*******")
+        else:
+            print("Admin already exists.")
+
+        # -------------------------
+        # Default Bank Services
+        # -------------------------
+        if BankService.query.count() == 0:
+            default_services = [
+                # Active Service 1
+                BankService(
+                    service_type='Active',
+                    name='Member Registration',
+                    description='Register and verify new members in CoNetX.',
+                    processing_time='Immediate',
+                    features=(
+                        'Create member profile\n'
+                        'Assign membership ID\n'
+                        'Capture and validate KYC\n'
+                        'Aadhar & mobile number verification'
+                    )
+                ),
+
+                # Active Service 2
+                BankService(
+                    service_type='Active',
+                    name='Loan Verification System',
+                    description='Internal and cross-society loan eligibility checking.',
+                    processing_time='Instant',
+                    features=(
+                        'Internal loan status checking\n'
+                        'Cross / inter-society loan duplication detection\n'
+                        'Aadhar-based member verification\n'
+                        'Mobile number-based tracing'
+                    )
+                ),
+
+                # Active Service 3
+                BankService(
+                    service_type='Active',
+                    name='Audit & Compliance',
+                    description='Monitor and validate cooperative transactions.',
+                    processing_time='Ongoing',
+                    features=(
+                        'Regular audit reports\n'
+                        'Compliance checks\n'
+                        'Transaction validation'
+                    )
+                ),
+
+                # Upcoming 1
+                BankService(
+                    service_type='Upcoming',
+                    name='Aadhar Authentication',
+                    description='Instant Aadhaar-based eKYC identity verification.',
+                    processing_time='Upcoming Feature',
+                    features=(
+                        'OTP / eKYC support\n'
+                        'Instant identity validation\n'
+                        'UIDAI-compliant secure workflow'
+                    )
+                ),
+
+                # Upcoming 2
+                BankService(
+                    service_type='Upcoming',
+                    name='CIBIL Integration',
+                    description='Fetch member CIBIL credit scores and reports.',
+                    processing_time='Coming Soon',
+                    features=(
+                        'Real-time score retrieval\n'
+                        'Loan eligibility insights\n'
+                        'Automated risk assessment'
+                    )
+                ),
+
+                # Upcoming 3
+                BankService(
+                    service_type='Upcoming',
+                    name='CoNetX Score',
+                    description='AI-powered cooperative credit scoring.',
+                    processing_time='Upcoming Feature',
+                    features=(
+                        'Behavior-based scoring\n'
+                        'Repayment reliability prediction\n'
+                        'Risk insight dashboard'
+                    )
+                ),
+
+                # Upcoming 4
+                BankService(
+                    service_type='Upcoming',
+                    name='Editable Legal Documents',
+                    description='Create and customize legal loan and agreement documents.',
+                    processing_time='In Development',
+                    features=(
+                        'Editable digital templates\n'
+                        'Auto-filled member & loan info\n'
+                        'Export for printing or e-sign'
+                    )
+                ),
+
+                # Upcoming 5
+                BankService(
+                    service_type='Upcoming',
+                    name='Smart Notifications',
+                    description='Automated SMS, Email & In-app notifications.',
+                    processing_time='Coming Soon',
+                    features=(
+                        'SMS / Email / In-app alerts\n'
+                        'Loan and application reminders\n'
+                        'Broadcast message system'
+                    )
+                ),
+            ]
+
+            db.session.add_all(default_services)
+            db.session.commit()
+            print("Default bank services added.")
+        else:
+            print("Bank services already exist.")
+
+def sync_bank_services():
+    updated_services = [
+        BankService(
+            service_type='Membership',
+            name='Member Registration',
+            description='Register new members to your CoNetX.',
+            processing_time='Immediate',
+            features='Create member profile\nAssign membership ID\nCapture KYC details'
+        ),
+
+        BankService(
+            service_type='Upcoming',
+            name='Aadhar Authentication',
+            description='Instant verification of member identity using secure Aadhaar-based eKYC.',
+            processing_time='Upcoming Feature',
+            features=(
+                'OTP/eKYC verification support\n'
+                'Instant identity validation\n'
+                'Secure UIDAI-compliant workflows'
+            )
+        ),
+
+        BankService(
+            service_type='Upcoming',
+            name='CIBIL Integration',
+            description='Fetch member credit scores and reports directly through CIBIL.',
+            processing_time='Upcoming Feature',
+            features=(
+                'Real-time credit score retrieval\n'
+                'Loan eligibility insights\n'
+                'Automated risk assessment'
+            )
+        ),
+
+        BankService(
+            service_type='Upcoming',
+            name='CoNetX Score',
+            description='AI-based cooperative credit scoring system for better lending decisions.',
+            processing_time='In Development',
+            features=(
+                'Behavior-based scoring\n'
+                'Repayment reliability index\n'
+                'Risk prediction dashboard'
+            )
+        ),
+
+        BankService(
+            service_type='Upcoming',
+            name='Editable Legal Documents',
+            description='Generate, edit, and export customizable legal and loan agreement documents.',
+            processing_time='In Development',
+            features=(
+                'Editable digital templates\n'
+                'Auto-filled member and loan info\n'
+                'Support for print and e-sign workflows'
+            )
+        ),
+
+        BankService(
+            service_type='Upcoming',
+            name='Smart Notifications',
+            description='Automated alerts for members and managers to improve engagement and compliance.',
+            processing_time='Coming Soon',
+            features=(
+                'Loan due reminders\n'
+                'Application status updates\n'
+                'SMS / Email / In-app notifications\n'
+                'Branch-wide broadcast messages'
+            )
+        ),
+
+        BankService(
+            service_type='Audit',
+            name='Audit & Compliance',
+            description='Ensure all transactions and loans follow regulations.',
+            processing_time='Ongoing',
+            features='Regular audit reports\nCompliance checks\nTransaction validation'
+        )
+    ]
+
+    for svc in updated_services:
+        existing = BankService.query.filter_by(name=svc.name).first()
+        if not existing:
+            db.session.add(svc)
+
+    db.session.commit()
+    print("Bank services synced successfully.")
+
 
 with app.app_context():
     create_tables_and_data()
+    sync_bank_services()
 
 # ==========================
 # Health Check
@@ -1393,7 +1596,9 @@ def forgot_password():
         algorithm='HS256'
     )
 
-    reset_link = f"http://localhost:5173/reset-password/{token}"
+    # Dynamically get frontend base URL from current request
+    frontend_base_url = request.host_url.rstrip('/')  # removes trailing slash
+    reset_link = f"{frontend_base_url}/reset-password/{token}"
 
     send_email(
         to_email=email,

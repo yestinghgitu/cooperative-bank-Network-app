@@ -141,15 +141,17 @@ const NavBar = ({ userName, userRole, onLogout }) => {
           backgroundColor: "rgba(255, 255, 255, 0.75)",
         }}
       >
-        {/* Logo */}
+{/* Logo */}
 <Stack direction="row" alignItems="center" spacing={1}>
   <Box
+    onClick={() => navigate("/dashboard")}
     sx={{
-      height: "70px", // fixed navbar height
-      width: "120px", // logo area width
+      height: "60px",
+      width: "120px",
       display: "flex",
       alignItems: "center",
-      overflow: "visible", // allows logo to "peek" outside without pushing navbar
+      overflow: "visible",
+      cursor: "pointer",
     }}
   >
     <Box
@@ -157,10 +159,10 @@ const NavBar = ({ userName, userRole, onLogout }) => {
       src={logo}
       alt="CoNetX Logo"
       sx={{
-        height: "100%", // fits container height
+        height: "100%",
         width: "auto",
         objectFit: "contain",
-        transform: "scale(1.6)", // visually enlarge logo without changing layout
+        transform: "scale(1.4)",
         transformOrigin: "left center",
         transition: "transform 0.3s ease",
         filter: "drop-shadow(0 2px 2px rgba(0,0,0,0.1))",
@@ -171,6 +173,7 @@ const NavBar = ({ userName, userRole, onLogout }) => {
     />
   </Box>
 </Stack>
+
 
         {/* Menu Section */}
         <Stack direction="row" spacing={1} alignItems="center">

@@ -76,20 +76,14 @@ const ViewLoans = () => {
         ? res.data
         : [];
 
-      if (currentUser.role === "manager") {
-        apps = apps.filter(
-          (a) =>
-            a.society_name === currentUser.bank_name &&
-            a.branch_name === currentUser.branch_name
-        );
-      } else if (currentUser.role === "user") {
-        apps = apps.filter(
-          (a) =>
-            a.society_name === currentUser.bank_name &&
-            a.branch_name === currentUser.branch_name
-        );
-      }
-
+      // Role-based filters
+    if (currentUser.role === "manager" || currentUser.role === "user") {
+      apps = apps.filter(
+        (a) =>
+          String(a.bank_id) === String(currentUser.bank_id) &&
+          String(a.branch_id) === String(currentUser.branch_id)
+      );
+    }
       setApplications(apps);
       setTotalPages(res.data?.pages || 1);
     } catch (error) {

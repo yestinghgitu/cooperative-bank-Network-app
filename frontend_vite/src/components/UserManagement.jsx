@@ -29,7 +29,7 @@ const getCurrentUser = () => {
 };
 
 const UserManagement = () => {
-  const currentUser = getCurrentUser();
+  const currentUser = React.useMemo(() => getCurrentUser(), []);
 
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -116,27 +116,28 @@ const UserManagement = () => {
 
   // ------------------ Fetch branches when bank changes ------------------
   useEffect(() => {
-    const fetchBranches = async () => {
-      if (
-        newUser.bank_name &&
-        previousBankRef.current !== newUser.bank_name
-      ) {
-        try {
-          if (currentUser.role === "admin") {
-            const res = await superAdminAPI.getBranches(newUser.bank_name);
-            setBranches(res.data?.data || []);
-          } else {
-            setBranches([{ branch_name: currentUser.branch_name }]);
-          }
-          previousBankRef.current = newUser.bank_name;
-        } catch (err) {
-          console.error(err);
-          toast.error("Failed to fetch branches");
+  const fetchBranches = async () => {
+    if (
+      newUser.bank_name &&
+      previousBankRef.current !== newUser.bank_name
+    ) {
+      try {
+        if (currentUser.role === "admin") {
+          const res = await superAdminAPI.getBranches(newUser.bank_name);
+          setBranches(res.data?.data || []);
+        } else {
+          setBranches([{ branch_name: currentUser.branch_name }]);
         }
+        previousBankRef.current = newUser.bank_name;
+      } catch (err) {
+        console.error(err);
+        toast.error("Failed to fetch branches");
       }
-    };
-    fetchBranches();
-  }, [newUser.bank_name, currentUser]);
+    }
+  };
+
+  fetchBranches();
+}, [newUser.bank_name]);  // ❗️ FIXED
 
   // ------------------ Fetch branches for edit user ------------------
   useEffect(() => {
@@ -219,9 +220,16 @@ const UserManagement = () => {
   };
 
   const handleAddUser = async () => {
+    // Email is required first
+    if (!newUser.email.trim()) {
+      return toast.error("Email is required");
+    }
+
+    // Now check other validation rules
     if (Object.values(validation).some((v) => v)) {
       return toast.error("Please fix validation errors");
     }
+
     setAdding(true);
     try {
       await adminAPI.createUser({
