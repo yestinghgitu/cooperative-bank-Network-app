@@ -15,32 +15,49 @@ import { loanAPI } from "../services/api";
 import { Search, RotateCcw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-const LoanSearch = ({  }) => {
-  const [searchParams, setSearchParams] = useState({
-    aadharNumber: "",
-    mobileNumber: "",
-    firstName: "",
-    lastName: "",
-  });
+const LoanSearch = () => {
+  const [query, setQuery] = useState("");
+  const [detected, setDetected] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const handleChange = (e) =>
-    setSearchParams({ ...searchParams, [e.target.name]: e.target.value });
+
+  const detectInputType = (value) => {
+    if (/^\d{12}$/.test(value)) return "Aadhaar Number";
+    if (/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/i.test(value)) return "PAN Number";
+    if (/^\d{10}$/.test(value)) return "Mobile Number";
+    return "";
+  };
+
+  const handleChange = (e) => {
+    const val = e.target.value.toUpperCase();
+    setQuery(val);
+    setDetected(detectInputType(val));
+  };
 
   const handleSearch = async () => {
+    const type = detectInputType(query.trim());
+
+    if (!type) {
+      alert("Enter valid Aadhaar (12 digits) OR PAN (ABCDE1234F) OR Mobile (10 digits)");
+      return;
+    }
+
+    const searchParams = { aadharNumber: "", panNumber: "", mobileNumber: "" };
+
+    if (type === "Aadhaar Number") searchParams.aadharNumber = query.trim();
+    if (type === "PAN Number") searchParams.panNumber = query.trim();
+    if (type === "Mobile Number") searchParams.mobileNumber = query.trim();
+
     setLoading(true);
+
     try {
       const res = await loanAPI.searchApplications(searchParams);
-      console.log("Raw API response:", res);
-
-      // Normalize response
       const list =
         Array.isArray(res) ? res : res?.applications || res?.data?.data || [];
-      console.log(" Normalized list:", list);
-      setResults(Array.isArray(list) ? list : []);
+      setResults(list || []);
     } catch (err) {
-      console.error(" Error fetching loan applications:", err);
+      console.error("Error fetching loan applications:", err);
       setResults([]);
     } finally {
       setLoading(false);
@@ -48,18 +65,14 @@ const LoanSearch = ({  }) => {
   };
 
   const handleReset = () => {
-    setSearchParams({
-      aadharNumber: "",
-      mobileNumber: "",
-      firstName: "",
-      lastName: "",
-    });
+    setQuery("");
+    setDetected("");
     setResults([]);
   };
 
   return (
     <Box sx={{ p: 3 }}>
-      <Typography level="h4" fontWeight="lg" mb={2}>
+      <Typography level="h4" fontWeight="lg" mb={3}>
         🏦 Search Loans
       </Typography>
 
@@ -70,46 +83,41 @@ const LoanSearch = ({  }) => {
           borderRadius: "lg",
           boxShadow: "sm",
           p: 3,
-          mb: 3,
+          mb: 4,
           bgcolor: "background.body",
         }}
       >
-        <CardContent>
-          <Stack spacing={2}>
-            <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-              <Input
-                placeholder="Aadhar Number"
-                name="aadharNumber"
-                value={searchParams.aadharNumber}
-                onChange={handleChange}
-                variant="soft"
-              />
-              <Input
-                placeholder="Mobile Number"
-                name="mobileNumber"
-                value={searchParams.mobileNumber}
-                onChange={handleChange}
-                variant="soft"
-              />
-            </Stack>
-            <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-              <Input
-                placeholder="First Name"
-                name="firstName"
-                value={searchParams.firstName}
-                onChange={handleChange}
-                variant="soft"
-              />
-              <Input
-                placeholder="Last Name"
-                name="lastName"
-                value={searchParams.lastName}
-                onChange={handleChange}
-                variant="soft"
-              />
-            </Stack>
+        <CardContent sx={{ p: 0 }}>
+          <Stack spacing={1.5} alignItems="center">
+            {/* INPUT */}
+            <Input
+              placeholder="Enter Aadhaar / PAN / Mobile"
+              value={query}
+              onChange={handleChange}
+              variant="soft"
+              sx={{
+                width: "280px",
+                fontSize: "0.9rem",
+                py: 1,
+              }}
+            />
 
-            <Stack direction="row" spacing={2} justifyContent="center" mt={1}>
+            {/* AUTO DETECT LABEL */}
+            <Typography
+              level="body-sm"
+              sx={{ minHeight: "18px" }}
+              color={detected ? "success" : query ? "danger" : "neutral"}
+            >
+              {detected ? `Detected: ${detected}` : query ? "Invalid input" : ""}
+            </Typography>
+
+            {/* ACTION BUTTONS */}
+            <Stack
+              direction="row"
+              spacing={2}
+              justifyContent="center"
+              sx={{ mt: 1.5 }}
+            >
               <Button
                 onClick={handleSearch}
                 startDecorator={<Search size={18} />}
@@ -119,6 +127,7 @@ const LoanSearch = ({  }) => {
               >
                 Search
               </Button>
+
               <Button
                 onClick={handleReset}
                 startDecorator={<RotateCcw size={18} />}
@@ -127,7 +136,12 @@ const LoanSearch = ({  }) => {
               >
                 Reset
               </Button>
-              <Button variant="plain" color="neutral" onClick={() => navigate("/dashboard")}>
+
+              <Button
+                variant="plain"
+                color="neutral"
+                onClick={() => navigate("/dashboard")}
+              >
                 Back
               </Button>
             </Stack>
@@ -135,7 +149,7 @@ const LoanSearch = ({  }) => {
         </CardContent>
       </Card>
 
-      {/* RESULTS TABLE */}
+      {/* RESULTS */}
       {loading ? (
         <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
           <CircularProgress size="lg" />
@@ -151,7 +165,7 @@ const LoanSearch = ({  }) => {
             bgcolor: "background.surface",
           }}
         >
-          <Typography level="h5" mb={1}>
+          <Typography level="h5" mb={2}>
             Search Results
           </Typography>
 
@@ -161,7 +175,8 @@ const LoanSearch = ({  }) => {
             hoverRow
             sx={{
               "--Table-headerUnderlineThickness": "1px",
-              "--TableCell-headBackground": "var(--joy-palette-neutral-softBg)",
+              "--TableCell-headBackground":
+                "var(--joy-palette-neutral-softBg)",
               borderRadius: "md",
               minWidth: 650,
             }}
@@ -177,38 +192,36 @@ const LoanSearch = ({  }) => {
                 <th>Status</th>
               </tr>
             </thead>
-            <tbody>
-  {results.map((app) => (
-    <tr key={app.application_id || app.id}>
-      <td>
-        {app.first_name} {app.last_name}
-      </td>
-      <td>{app.mobile_number}</td>
-      <td>{app.loan_type}</td>
-      <td>₹{app.loan_amount?.toLocaleString()}</td>
-      <td>{app.society_name}</td>
-      <td>{app.branch_name}</td>
-      <td>
-        <Typography
-          level="body-sm"
-          fontWeight="lg"
-          color={
-            app.status === "Running"
-              ? "success"
-              : app.status === "Due"
-              ? "warning"
-              : ["Overdue", "Litigation"].includes(app.status)
-              ? "danger"
-              : "neutral"
-          }
-        >
-          {app.status}
-        </Typography>
-      </td>
-    </tr>
-  ))}
-</tbody>
 
+            <tbody>
+              {results.map((app) => (
+                <tr key={app.application_id || app.id}>
+                  <td>{app.first_name} {app.last_name}</td>
+                  <td>{app.mobile_number}</td>
+                  <td>{app.loan_type}</td>
+                  <td>₹{app.loan_amount?.toLocaleString()}</td>
+                  <td>{app.society_name}</td>
+                  <td>{app.branch_name}</td>
+                  <td>
+                    <Typography
+                      level="body-sm"
+                      fontWeight="lg"
+                      color={
+                        app.status === "Running"
+                          ? "success"
+                          : app.status === "Due"
+                          ? "warning"
+                          : ["Overdue", "Litigation"].includes(app.status)
+                          ? "danger"
+                          : "neutral"
+                      }
+                    >
+                      {app.status}
+                    </Typography>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
           </Table>
         </Sheet>
       ) : (

@@ -41,6 +41,7 @@ const NavBar = ({ userName, userRole, onLogout }) => {
     ["create-loan", "Create Loan"],
     ["view-loans", "Loans"],
     ["loan-search", "Search"],
+    // ["credit-check", "Credit Score"],
   ];
 
   const adminTools = [
@@ -162,7 +163,7 @@ const NavBar = ({ userName, userRole, onLogout }) => {
         height: "100%",
         width: "auto",
         objectFit: "contain",
-        transform: "scale(1.4)",
+        transform: "scale(1.6)",
         transformOrigin: "left center",
         transition: "transform 0.3s ease",
         filter: "drop-shadow(0 2px 2px rgba(0,0,0,0.1))",

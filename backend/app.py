@@ -34,6 +34,11 @@ import re
 from sqlalchemy import and_
 from sqlalchemy.exc import IntegrityError
 
+from flask import request, jsonify, current_app, send_file
+from flask_jwt_extended import jwt_required, get_jwt_identity
+import uuid, os, base64
+from models import CreditConsent, BureauReport
+
 # ==========================
 # Initialization
 # ==========================
@@ -375,12 +380,12 @@ def create_tables_and_data():
                 # Upcoming 4
                 BankService(
                     service_type='Upcoming',
-                    name='Editable Legal Documents',
-                    description='Create and customize legal loan and agreement documents.',
+                    name='Editable Documents',
+                    description='Create and customize society or bank related documents.',
                     processing_time='In Development',
                     features=(
                         'Editable digital templates\n'
-                        'Auto-filled member & loan info\n'
+                        'Auto-filled member & other info\n'
                         'Export for printing or e-sign'
                     )
                 ),
@@ -1654,6 +1659,18 @@ def verify_reset_token(token):
         return None
     except pyjwt.InvalidTokenError:
         return None
+
+# from credit_routes import credit
+# app.register_blueprint(credit)
+
+# from routes.credit_routes import credit
+# app.register_blueprint(credit)
+
+# near other imports
+from credit_routes_mock import credit_bp
+
+app.register_blueprint(credit_bp, url_prefix="/api/credit")
+
 
 # ==========================
 # Run Server

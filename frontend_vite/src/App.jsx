@@ -25,6 +25,7 @@ import { authAPI } from "./services/api";
 import PrivateRoute from "./components/PrivateRoute";
 import ForgotPassword from "./components/ForgotPassword";
 import ResetPassword from "./components/ResetPassword";
+import CreditCheck from "./components/CreditCheck";
 
 const theme = extendTheme({
   colorSchemes: {
@@ -140,7 +141,7 @@ function AppWrapper() {
           <Route path="/contact" element={<Contact />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/privacy" element={<Privacy />} />
-
+          
           {/* ---------- PROTECTED ROUTES ---------- */}
           <Route
             path="/dashboard"
@@ -206,6 +207,14 @@ function AppWrapper() {
               </PrivateRoute>
             }
           />
+          <Route
+  path="/credit-check"
+  element={
+    <PrivateRoute isAuthenticated={isAuthenticated}>
+      <CreditCheck />
+    </PrivateRoute>
+  }
+/>
 
           {/* ---------- DEFAULT REDIRECT ---------- */}
           <Route

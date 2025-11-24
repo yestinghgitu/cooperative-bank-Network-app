@@ -246,4 +246,37 @@ export const contactAPI = {
     ),
 };
 
+// ================= CREDIT APIs =====================
+// ===================================================
+export const creditAPI = {
+  saveConsent: (data) =>
+    safeRequest(api.post("/credit/consent", data)),
+
+  sendMockOtp: (data) =>
+    safeRequest(api.post("/credit/mock/send_otp", data)),
+
+  verifyMockOtp: (data) =>
+    safeRequest(api.post("/credit/mock/verify_otp", data)),
+
+  requestScore: (data) =>
+    safeRequest(api.post("/credit/request_score", data)),
+
+  listReports: () =>
+    safeRequest(api.get("/credit/reports")),
+
+  // 🔥 FIX: PDF download using axios blob request
+  downloadReport: (reportId) =>
+    api.get(`/credit/report/${reportId}`, {
+      responseType: "blob",
+      headers: {
+        Accept: "application/pdf",
+      },
+    }),
+
+  // For <a href=""> direct download
+  downloadReportUrl: (reportId) => `/api/credit/report/${reportId}`,
+};
+
+
+
 export default api;
