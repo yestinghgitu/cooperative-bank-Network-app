@@ -27,6 +27,9 @@ import ForgotPassword from "./components/ForgotPassword";
 import ResetPassword from "./components/ResetPassword";
 import CreditCheck from "./components/CreditCheck";
 
+// ⭐ New home page
+import HomePagePublic from "./components/HomePagePublic";
+
 const theme = extendTheme({
   colorSchemes: {
     light: {
@@ -86,14 +89,23 @@ function AppWrapper() {
     if (userData && userData.role) localStorage.setItem("user", JSON.stringify(userData));
     setUser(userData);
     setIsAuthenticated(true);
+    navigate("/dashboard");
   };
 
   const handleLogout = () => {
-    localStorage.clear();
-    setUser(null);
-    setIsAuthenticated(false);
-    navigate("/login", { replace: true });
-  };
+  // Clear browser storage FIRST
+  localStorage.removeItem("authToken");
+  localStorage.removeItem("user");
+
+  // Update state immediately
+  setIsAuthenticated(false);
+  setUser(null);
+
+  // Navigate to home FORCEFULLY
+  window.location.href = "/";
+};
+
+
 
   if (loading) {
     return (
@@ -109,40 +121,44 @@ function AppWrapper() {
 
   return (
     <Box sx={{ minHeight: "100vh", bgcolor: "background.body" }}>
-      {/* NavBar always shows when logged in */}
+      
+      {/* NavBar shows ONLY when logged in */}
       {isAuthenticated && (
         <NavBar
-          userName={user?.full_name || user?.username || user?.name || "User"}
+          userName={user?.full_name || user?.username || "User"}
           userRole={user?.role || "user"}
           onLogout={handleLogout}
-          currentView=""
         />
       )}
 
       <main>
         <Routes>
-          {/* ---------- PUBLIC ROUTES ---------- */}
+
+          {/* ⭐ PUBLIC HOME PAGE */}
+          <Route
+            path="/"
+            element={
+              isAuthenticated ? <Navigate to="/dashboard" /> : <HomePagePublic />
+            }
+          />
+
+          {/* PUBLIC ROUTES */}
           <Route
             path="/login"
-            element={
-              isAuthenticated ? (
-                <Navigate to="/dashboard" />
-              ) : (
-                <LoginPage onLogin={handleLogin} />
-              )
-            }
+            element={isAuthenticated ? <Navigate to="/dashboard" /> : <LoginPage onLogin={handleLogin} />}
           />
           <Route
             path="/register"
             element={isAuthenticated ? <Navigate to="/dashboard" /> : <Register />}
           />
+
           <Route path="/status-check" element={<LoanStatusCheck />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/privacy" element={<Privacy />} />
-          
-          {/* ---------- PROTECTED ROUTES ---------- */}
+
+          {/* PROTECTED ROUTES */}
           <Route
             path="/dashboard"
             element={
@@ -151,6 +167,7 @@ function AppWrapper() {
               </PrivateRoute>
             }
           />
+
           <Route
             path="/create-loan"
             element={
@@ -159,6 +176,7 @@ function AppWrapper() {
               </PrivateRoute>
             }
           />
+
           <Route
             path="/view-loans"
             element={
@@ -167,14 +185,7 @@ function AppWrapper() {
               </PrivateRoute>
             }
           />
-          <Route
-            path="/services"
-            element={
-              <PrivateRoute isAuthenticated={isAuthenticated}>
-                <Services />
-              </PrivateRoute>
-            }
-          />
+
           <Route
             path="/loan-search"
             element={
@@ -183,6 +194,16 @@ function AppWrapper() {
               </PrivateRoute>
             }
           />
+
+          <Route
+            path="/services"
+            element={
+              <PrivateRoute isAuthenticated={isAuthenticated}>
+                <Services />
+              </PrivateRoute>
+            }
+          />
+
           <Route
             path="/admin-users"
             element={
@@ -191,6 +212,7 @@ function AppWrapper() {
               </PrivateRoute>
             }
           />
+
           <Route
             path="/manage-banks"
             element={
@@ -199,6 +221,7 @@ function AppWrapper() {
               </PrivateRoute>
             }
           />
+
           <Route
             path="/contact-messages"
             element={
@@ -207,24 +230,25 @@ function AppWrapper() {
               </PrivateRoute>
             }
           />
-          <Route
-  path="/credit-check"
-  element={
-    <PrivateRoute isAuthenticated={isAuthenticated}>
-      <CreditCheck />
-    </PrivateRoute>
-  }
-/>
 
-          {/* ---------- DEFAULT REDIRECT ---------- */}
           <Route
-            path="*"
-            element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />}
+            path="/credit-check"
+            element={
+              <PrivateRoute isAuthenticated={isAuthenticated}>
+                <CreditCheck />
+              </PrivateRoute>
+            }
           />
 
-         {/* ----------For password reset ---------- */}
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/reset-password/:token" element={<ResetPassword />} />
+          {/* Forgot / Reset password */}
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password/:token" element={<ResetPassword />} />
+
+          {/* DEFAULT REDIRECT */}
+          <Route
+            path="*"
+            element={<Navigate to={isAuthenticated ? "/dashboard" : "/"} replace />}
+          />
         </Routes>
       </main>
     </Box>

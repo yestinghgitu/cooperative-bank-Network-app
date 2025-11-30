@@ -189,7 +189,7 @@ const LoginPage = ({ onLogin }) => {
           </form>
 
           {/* Contact Info */}
-          <Typography level="body-xs" mt={1.5} color="neutral.500">
+          {/* <Typography level="body-xs" mt={1.5} color="neutral.500">
             For inquiries, contact:{" "}
             <a href="tel:+917892611670" style={{ color: "#1a73e8" }}>
               +91 78926 11670
@@ -205,7 +205,7 @@ const LoginPage = ({ onLogin }) => {
             >
               b2bnetworkguide@gmail.com
             </a>
-          </Typography>
+          </Typography> */}
         </CardContent>
       </Card>
 

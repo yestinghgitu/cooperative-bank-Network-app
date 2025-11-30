@@ -161,7 +161,7 @@ const Dashboard = () => {
   const handleQuickAction = (action) => {
     const map = {
       "create-loan": "/create-loan",
-      search: "/search",
+      "loan-search": "/loan-search",
       "view-loans": "/view-loans",
     };
     navigate(map[action]);
@@ -386,7 +386,7 @@ const Dashboard = () => {
         <Grid container spacing={3}>
           {[
             { label: "Create Loan", icon: <AddCircleOutline />, action: "create-loan" },
-            { label: "Search Loans", icon: <Search />, action: "search" },
+            { label: "Search Loans", icon: <Search />, action: "loan-search" },
             { label: "View My Loans", icon: <Assignment />, action: "view-loans" },
           ].map((item, idx) => (
             <Grid key={idx} xs={12} sm={6} md={4}>
