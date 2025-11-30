@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; background: #f4f7f9; }
+    .container {
+      max-width: 700px;
+      margin: 50px auto;
+      background: white;
+      padding: 25px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    h2 { color: #333; }
+    .button {
+      display: inline-block;
+      padding: 12px 20px;
+      margin: 10px 0;
+      background: #4285f4;
+      color: white;
+      border-radius: 5px;
+      text-decoration: none;
+      font-weight: bold;
+      transition: 0.2s;
+    }
+    .button:hover { background: #3367d6; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Visit Entry Form</h2>
+    <p>Click below to open the visit form:</p>
+    <a class="button" href="https://docs.google.com/spreadsheets/d/1qebmjK5GeKsx-vldGBJzHBOt1eXvfS7SMYjdVuF6XEY/edit?usp=drive_link" target="_blank">
+      Open Visit Form
+    </a>
+    <br>
+    <a class="button" href="<?= webAppUrl ?>?page=home">Back Home</a>
+  </div>
+</body>
+</html>

@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+
+<style>
+body {font-family:'Segoe UI',sans-serif;background:#f4f7f9;margin:0;padding:0;}
+.container {max-width:1100px;margin:30px auto;background:white;padding:20px;border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,0.1);}
+h2 {text-align:center;color:#333;margin-top:0;}
+.filters {display:flex;flex-wrap:wrap;gap:12px;margin-bottom:15px;align-items:center;}
+.filters > * {min-width:160px;flex:1 1 160px;}
+label.small {font-size:12px;color:#555;display:block;margin-bottom:4px;}
+input,select {padding:8px;border-radius:5px;border:1px solid #ccc;width:100%;box-sizing:border-box;}
+.controls {display:flex;gap:12px;align-items:center;}
+.small-btn {padding:8px 12px;border-radius:6px;border:none;background:#4285f4;color:#fff;cursor:pointer;}
+.small-btn:hover {background:#3367d6;}
+table {border-collapse:collapse;width:100%;margin-top:15px;}
+th,td {border:1px solid #ccc;padding:8px;text-align:left;vertical-align:top;}
+th {background:#4285f4;color:white;position:sticky;top:0;z-index:1;}
+#filtered {min-height:60px;}
+.note {color:#666;font-size:13px;margin-bottom:8px;}
+.back {margin-top:15px;text-align:center;}
+a.button {display:inline-block;padding:10px 20px;background:#4285f4;color:white;border-radius:5px;text-decoration:none;}
+a.button:hover {background:#3367d6;}
+@media(max-width:720px){.filters{flex-direction:column}}
+</style>
+<script>
+let statesObject = {};
+let employeesList = [];
+let statusesList = [];
+
+// ---------------------------------------------------
+// CUSTOM TABLE HEADERS
+// ---------------------------------------------------
+const CUSTOM_HEADERS = [
+  "State", "Division", "District", "Taluk", "Employee Name", "Employee ID", 
+  "Date of Visit", "Society/Bank Name", "Type", "Address", "Contact Person", 
+  "Contact Number", "Purpose", "Discussion Summary", "Documents Collected", 
+  "Next Follow-up Date", "Status", "Remarks"
+];
+
+/* ---------------------------------------------------
+   INITIALIZE FILTERS
+--------------------------------------------------- */
+function initFilters() {
+  google.script.run.withSuccessHandler(function(opts) {
+      statesObject = opts.states || {};
+      employeesList = opts.employees || [];
+      statusesList = opts.statuses || [];
+
+      populateStateDropdown(Object.keys(statesObject).sort());
+      populateEmployeesDropdown(employeesList);
+      populateStatusDropdown(statusesList);
+
+      document.getElementById('state').addEventListener('change', onStateChange);
+      document.getElementById('division').addEventListener('change', onDivisionChange);
+      document.getElementById('district').addEventListener('change', loadFilteredData);
+      document.getElementById('employee').addEventListener('change', loadFilteredData);
+      document.getElementById('status').addEventListener('change', loadFilteredData);
+      document.getElementById('startDate').addEventListener('change', loadFilteredData);
+      document.getElementById('endDate').addEventListener('change', loadFilteredData);
+
+      loadFilteredData();
+  }).getFilterOptions();
+}
+
+/* ---------------------------------------------------
+   POPULATE DROPDOWNS
+--------------------------------------------------- */
+function populateStateDropdown(states) {
+  const sel = document.getElementById('state');
+  sel.innerHTML = '<option value="">Select State</option>';
+  states.forEach(s => sel.add(new Option(s, s)));
+}
+
+function populateEmployeesDropdown(list) {
+  const sel = document.getElementById('employee');
+  sel.innerHTML = '<option value="">Select Employee</option>';
+  list.forEach(emp => {
+    sel.add(new Option(emp.name + " (" + emp.code + ")", emp.code));
+  });
+}
+
+function populateDivisionDropdown(divisions) {
+  const sel = document.getElementById('division');
+  sel.innerHTML = '<option value="">Select Division</option>';
+  divisions.sort().forEach(d => sel.add(new Option(d, d)));
+  sel.disabled = false;
+}
+
+function populateDistrictDropdown(districts) {
+  const sel = document.getElementById('district');
+  sel.innerHTML = '<option value="">Select District</option>';
+  districts.sort().forEach(d => sel.add(new Option(d, d)));
+  sel.disabled = false;
+}
+
+function populateStatusDropdown(statuses) {
+  const sel = document.getElementById('status');
+  sel.innerHTML = '<option value="">Select Status</option>';
+  statuses.forEach(s => sel.add(new Option(s, s)));
+}
+
+/* ---------------------------------------------------
+   CASCADING LOGIC
+--------------------------------------------------- */
+function onStateChange() {
+  const state = document.getElementById('state').value;
+
+  document.getElementById('division').innerHTML = '<option value="">Select Division</option>';
+  document.getElementById('division').disabled = true;
+
+  document.getElementById('district').innerHTML = '<option value="">Select District</option>';
+  document.getElementById('district').disabled = true;
+
+  if (state && statesObject[state]) {
+    populateDivisionDropdown(Object.keys(statesObject[state]));
+  }
+
+  loadFilteredData();
+}
+
+function onDivisionChange() {
+  const state = document.getElementById('state').value;
+  const division = document.getElementById('division').value;
+
+  document.getElementById('district').innerHTML = '<option value="">Select District</option>';
+  document.getElementById('district').disabled = true;
+
+  if (state && division && statesObject[state][division]) {
+    populateDistrictDropdown(statesObject[state][division]);
+  }
+
+  loadFilteredData();
+}
+
+/* ---------------------------------------------------
+   LOAD FILTERED DATA
+   Only send selected filters
+--------------------------------------------------- */
+function loadFilteredData() {
+  const getVal = id => {
+    const el = document.getElementById(id);
+    return el && el.value ? el.value : undefined;
+  };
+
+  google.script.run
+    .withSuccessHandler(renderTable)
+    .getFilteredData(
+      getVal('state'),
+      getVal('division'),
+      getVal('district'),
+      getVal('employee'),
+      getVal('status'),
+      getVal('startDate'),
+      getVal('endDate')
+    );
+
+  document.getElementById('filtered').innerHTML =
+    '<div class="note">Loading filtered data…</div>';
+}
+
+/* ---------------------------------------------------
+   RENDER TABLE WITH CUSTOM HEADERS
+--------------------------------------------------- */
+function renderTable(arrayData) {
+  if (!arrayData || arrayData.length === 0) {
+    document.getElementById('filtered').innerHTML =
+      '<div class="note">No data found.</div>';
+    return;
+  }
+
+  let html = "<div style='overflow:auto'><table><thead><tr>";
+  CUSTOM_HEADERS.forEach(h => html += "<th>" + escapeHtml(h) + "</th>");
+  html += "</tr></thead><tbody>";
+
+  arrayData.forEach(row => {
+    html += "<tr>";
+    CUSTOM_HEADERS.forEach((header, idx) => {
+      html += "<td>" + escapeHtml(row[idx] || "") + "</td>";
+    });
+    html += "</tr>";
+  });
+
+  html += "</tbody></table></div>";
+  document.getElementById('filtered').innerHTML = html;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, m =>
+    ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[m]
+  );
+}
+
+/* ---------------------------------------------------
+   RESET FILTERS
+--------------------------------------------------- */
+function resetFilters() {
+  ['state','division','district','employee','status','startDate','endDate'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.value = "";
+    if(id==='division' || id==='district') el.disabled = true;
+  });
+
+  document.getElementById('division').innerHTML = '<option value="">Select Division</option>';
+  document.getElementById('district').innerHTML = '<option value="">Select District</option>';
+
+  loadFilteredData();
+}
+
+window.onload = initFilters;
+</script>
+
+</head>
+
+<body>
+<div class="container">
+  <h2>Filtered Visits Data</h2>
+
+  <div class="filters">
+    <div>
+      <label class="small">State</label>
+      <select id="state"></select>
+    </div>
+
+    <div>
+      <label class="small">Division</label>
+      <select id="division" disabled></select>
+    </div>
+
+    <div>
+      <label class="small">District</label>
+      <select id="district" disabled></select>
+    </div>
+
+    <div>
+      <label class="small">Employee</label>
+      <select id="employee"></select>
+    </div>
+
+    <div>
+      <label class="small">Status</label>
+      <select id="status"></select>
+    </div>
+
+    <div>
+      <label class="small">Start Date</label>
+      <input id="startDate" type="date" onchange="loadFilteredData()">
+    </div>
+
+    <div>
+      <label class="small">End Date</label>
+      <input id="endDate" type="date" onchange="loadFilteredData()">
+    </div>
+
+    <div class="controls">
+      <button class="small-btn" onclick="loadFilteredData()">Apply</button>
+      <button class="small-btn" onclick="resetFilters()" style="background:#999">Reset</button>
+    </div>
+  </div>
+
+  <div id="filtered">Loading...</div>
+<div class="back">
+  <a class="button" href="<?= webAppUrl ?>?page=home">Back Home</a>
+</div>
+
+</div>
+</body>
+</html>

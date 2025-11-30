@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <title>Visit Tracker Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; background: #f4f7f9; margin:0; padding:20px; }
+    h2 { text-align: center; color: #333; }
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 15px;
+      margin-bottom: 25px;
+    }
+    input, select { padding: 8px; border-radius: 5px; border: 1px solid #ccc; flex:1; min-width:150px; }
+    .cards {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      flex: 1 1 200px;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .card h3 { margin: 0; color: #4285f4; }
+    .charts { display: flex; flex-wrap: wrap; gap: 30px; justify-content: center; }
+    canvas { background: white; border-radius: 10px; padding: 15px; box-shadow:0 4px 12px rgba(0,0,0,0.1); }
+    .back { text-align: center; margin-top: 20px; }
+    a.button { padding: 10px 20px; background: #4285f4; color: white; border-radius: 5px; text-decoration: none; }
+    a.button:hover { background: #3367d6; }
+  </style>
+</head>
+<body>
+  <h2>Interactive Dashboard</h2>
+
+  <!-- Filters -->
+  <div class="filters">
+    <input id="stateFilter" placeholder="State" oninput="updateDashboard()">
+    <input id="employeeFilter" placeholder="Employee" oninput="updateDashboard()">
+    <label>From:</label><input id="fromDate" type="date" onchange="updateDashboard()">
+    <label>To:</label><input id="toDate" type="date" onchange="updateDashboard()">
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="cards">
+    <div class="card"><h3 id="totalVisits">0</h3><p>Total Visits</p></div>
+    <div class="card"><h3 id="pendingVisits">0</h3><p>Pending Visits</p></div>
+    <div class="card"><h3 id="completedVisits">0</h3><p>Completed Visits</p></div>
+  </div>
+
+  <!-- Charts -->
+  <div class="charts">
+    <div>
+      <h4>Visits by State</h4>
+      <canvas id="stateChart" width="400" height="300"></canvas>
+    </div>
+    <div>
+      <h4>Visits by Status</h4>
+      <canvas id="statusChart" width="400" height="300"></canvas>
+    </div>
+  </div>
+
+  <div class="back"><a class="button" href="<?= webAppUrl ?>?page=home">Back Home</a></div>
+
+  <script>
+    let allData = [];
+
+    // Load data from server
+    function loadData() {
+      google.script.run.withSuccessHandler(function(summary){
+        allData = summary.rawData || [];
+        updateDashboard();
+      }).getDashboardData(); // Modify getDashboardData() to also return raw rows
+    }
+
+    function updateDashboard() {
+      const state = document.getElementById("stateFilter").value.toLowerCase();
+      const emp = document.getElementById("employeeFilter").value.toLowerCase();
+      const from = document.getElementById("fromDate").value;
+      const to = document.getElementById("toDate").value;
+
+      // Filter data
+      const filtered = allData.filter((row, i)=>{
+        if(i===0) return true; // header row
+        let match = true;
+        if(state && row[0].toLowerCase().indexOf(state)===-1) match = false;
+        if(emp && row[4].toLowerCase().indexOf(emp)===-1) match = false;
+        if(from) match = match && row[6]>=from;
+        if(to) match = match && row[6]<=to;
+        return match;
+      });
+
+      renderSummaryAndCharts(filtered);
+    }
+
+    let stateChart, statusChart;
+
+    function renderSummaryAndCharts(data){
+      if(data.length<2) data = [[],[]]; // prevent empty
+      const headers = data[0];
+      const rows = data.slice(1);
+
+      // Summary counts
+      let total = rows.length;
+      let pending = rows.filter(r=>r[16]==='Pending').length;
+      let completed = rows.filter(r=>r[16]==='Completed').length;
+
+      document.getElementById("totalVisits").innerText = total;
+      document.getElementById("pendingVisits").innerText = pending;
+      document.getElementById("completedVisits").innerText = completed;
+
+      // Visits by State
+      let visitsByState = {};
+      rows.forEach(r => {
+        const st = r[0] || 'Unknown';
+        visitsByState[st] = (visitsByState[st]||0)+1;
+      });
+
+      const stateLabels = Object.keys(visitsByState);
+      const stateData = Object.values(visitsByState);
+
+      if(stateChart) stateChart.destroy();
+      stateChart = new Chart(document.getElementById('stateChart').getContext('2d'), {
+        type:'bar',
+        data:{labels: stateLabels, datasets:[{label:'Visits', data: stateData, backgroundColor:'#4285f4'}]},
+        options:{ responsive:true, plugins:{legend:{display:false}} }
+      });
+
+      // Visits by Status
+      let visitsByStatus = { Pending:0, Completed:0 };
+      rows.forEach(r=>{ visitsByStatus[r[16]] = (visitsByStatus[r[16]]||0)+1; });
+      const statusLabels = Object.keys(visitsByStatus);
+      const statusData = Object.values(visitsByStatus);
+
+      if(statusChart) statusChart.destroy();
+      statusChart = new Chart(document.getElementById('statusChart').getContext('2d'), {
+        type:'doughnut',
+        data:{labels: statusLabels, datasets:[{data: statusData, backgroundColor:['#fbbc05','#34a853']}]},
+        options:{ responsive:true }
+      });
+    }
+
+    loadData();
+  </script>
+</body>
+</html>

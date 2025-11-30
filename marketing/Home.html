@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f4f7f9;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 800px;
+      margin: 50px auto;
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+    .button {
+      display: inline-block;
+      padding: 15px 25px;
+      margin: 10px;
+      background: #4285f4;
+      color: white;
+      text-decoration: none;
+      border-radius: 5px;
+      font-weight: bold;
+      transition: 0.2s;
+    }
+    .button:hover { background: #3367d6; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>India Cooperative Visit Tracker</h1>
+    <a class="button" href="<?= webAppUrl ?>?page=dashboard">Dashboard</a>
+    <a class="button" href="<?= webAppUrl ?>?page=form">Fill Visit Form</a>
+    <a class="button" href="<?= webAppUrl ?>?page=filtered">View Filtered Data</a>
+    <a class="button" href="<?= webAppUrl ?>?page=submit">Submit Visit Data</a>
+    <a class="button" href="<?= webAppUrl ?>?page=portal">Employee Portal</a>
+    <!-- New Admin-only page -->
+    <a class="button" href="<?= webAppUrl ?>?page=addEmployee">Add Employee</a>
+  </div>
+</body>
+</html>

@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; background: #f4f7f9; padding:20px; }
+    .container { max-width: 720px; margin:auto; background:white; padding:25px; border-radius:10px; box-shadow:0 4px 12px rgba(0,0,0,0.1); }
+    h2 { text-align:center; color:#333; }
+    label { display:block; margin-top:15px; font-weight:bold; }
+    input, select, textarea { width:100%; padding:8px; border-radius:5px; border:1px solid #ccc; margin-top:5px; box-sizing:border-box; }
+    textarea { resize: vertical; }
+    button { margin-top: 20px; padding:10px 20px; background:#4285f4; color:white; border:none; border-radius:5px; cursor:pointer; }
+    button:hover { background:#3367d6; }
+    .back { text-align:center; margin-top:20px; }
+    a.button { padding:10px 20px; background:#4285f4; color:white; border-radius:5px; text-decoration:none; }
+    a.button:hover { background:#3367d6; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Submit Visit Data</h2>
+
+    <form id="visitForm" onsubmit="submitData(); return false;">
+
+      <!-- STATE -->
+      <label>State:</label>
+      <select id="state" required onchange="onStateChange()">
+        <option value="">Loading states...</option>
+      </select>
+
+      <!-- DIVISION (Only for Karnataka) -->
+      <label id="division_label" style="display:none;">Division / Region:</label>
+      <select id="division" style="display:none;" onchange="populateDistrictsFromDivision()"></select>
+
+      <!-- DISTRICT -->
+      <label>District:</label>
+      <select id="district" required>
+        <option value="">Select state first</option>
+      </select>
+
+      <!-- TALUK -->
+      <label>Taluk / Block:</label>
+      <input type="text" id="taluk" placeholder="Enter Taluk / Block">
+
+      <label>Employee Name:</label>
+      <input type="text" id="employee" required>
+
+      <label>Employee ID:</label>
+      <input type="text" id="empId" required>
+
+      <label>Date of Visit:</label>
+      <input type="date" id="date" required>
+
+      <label>Co-operative Society / Bank Name:</label>
+      <input type="text" id="societyName" required placeholder="Enter Society or Bank name">
+
+      <label>Type (Society/Bank):</label>
+      <select id="type" required>
+        <option>Co-operative Society</option>
+        <option>Urban Co-operative Bank</option>
+        <option>Credit Cooperative</option>
+        <option>Other</option>
+      </select>
+
+      <label>Address:</label>
+      <input type="text" id="address">
+
+      <label>Contact Person:</label>
+      <input type="text" id="contactPerson">
+
+      <label>Contact Number:</label>
+      <input type="text" id="contactNumber" placeholder="Phone or WhatsApp number">
+
+      <label>Purpose of Visit:</label>
+      <textarea id="purpose" rows="2"></textarea>
+
+      <label>Discussion Summary:</label>
+      <textarea id="summary" rows="3"></textarea>
+
+      <label>Documents Collected:</label>
+      <textarea id="documents" rows="2"></textarea>
+
+      <label>Next Follow-up Date:</label>
+      <input type="date" id="nextFollow">
+
+      <label>Status (Pending/Completed):</label>
+      <select id="status">
+        <option>Pending</option>
+        <option>Completed</option>
+      </select>
+
+      <label>Remarks:</label>
+      <textarea id="remarks" rows="2"></textarea>
+
+      <button type="submit">Submit Visit</button>
+    </form>
+
+    <div class="back">
+      <a class="button" href="<?= webAppUrl ?>?page=home">Back Home</a>
+    </div>
+  </div>
+
+<script>
+const divisionData = {
+  "Karnataka": {
+    "Bengaluru Division": ["Bengaluru Urban","Bengaluru Rural","Chikkaballapura","Chitradurga","Davanagere","Kolar","Ramanagara","Shivamogga","Tumakuru"],
+    "Mysuru Division": ["Chamarajanagar","Chikkamagaluru","Dakshina Kannada","Hassan","Kodagu","Mandya","Mysuru","Udupi"],
+    "Belagavi Division": ["Bagalkote","Belagavi","Dharwad","Gadag","Haveri","Uttara Kannada"],
+    "Kalaburagi Division": ["Ballari","Bidar","Kalaburagi","Koppal","Raichur","Vijayapura","Yadgir"]
+  }
+};
+
+let locData = {};
+
+// Load states from server
+google.script.run.withSuccessHandler(function(data){
+  locData = data || {};
+  const stateSel = document.getElementById("state");
+  stateSel.innerHTML = '<option value="">Select state</option>';
+  Object.keys(locData).sort().forEach(st => stateSel.add(new Option(st, st)));
+}).getLocationData();
+
+// When State changes
+function onStateChange() {
+  const state = document.getElementById("state").value;
+  if(state==="Karnataka"){
+    showDivisionDropdown(state);
+  } else {
+    hideDivisionDropdown();
+    populateDistricts(); // show districts directly
+  }
+}
+
+// Show division dropdown (Karnataka)
+function showDivisionDropdown(state){
+  const divSel = document.getElementById("division");
+  const divLabel = document.getElementById("division_label");
+  divSel.style.display="block";
+  divLabel.style.display="block";
+  divSel.innerHTML='<option value="">Select division</option>';
+  Object.keys(divisionData[state]).forEach(d => divSel.add(new Option(d,d)));
+  document.getElementById("district").innerHTML='<option value="">Select division first</option>';
+}
+
+function hideDivisionDropdown(){
+  const divSel = document.getElementById("division");
+  const divLabel = document.getElementById("division_label");
+  divSel.style.display="none"; divLabel.style.display="none"; divSel.innerHTML="";
+}
+
+// Populate districts for non-Karnataka
+function populateDistricts(){
+  const state = document.getElementById("state").value;
+  const distSel = document.getElementById("district");
+  if(state && locData[state]){
+    distSel.innerHTML='<option value="">Select district</option>';
+    locData[state].sort().forEach(d => distSel.add(new Option(d,d)));
+  } else distSel.innerHTML='<option value="">Select state first</option>';
+}
+
+// Populate districts based on Karnataka division
+function populateDistrictsFromDivision(){
+  const state=document.getElementById("state").value;
+  const div=document.getElementById("division").value;
+  const distSel=document.getElementById("district");
+  if(state==="Karnataka" && div && divisionData[state][div]){
+    distSel.innerHTML='<option value="">Select district</option>';
+    divisionData[state][div].forEach(d=>distSel.add(new Option(d,d)));
+  } else populateDistricts();
+}
+
+// Submit form
+function submitData(){
+  const btn=document.querySelector("button[type=submit]");
+  btn.disabled=true;
+  const row=[
+    document.getElementById("state").value,
+    document.getElementById("division").value||"",
+    document.getElementById("district").value,
+    document.getElementById("taluk").value,
+    document.getElementById("employee").value,
+    document.getElementById("empId").value,
+    document.getElementById("date").value,
+    document.getElementById("societyName").value,
+    document.getElementById("type").value,
+    document.getElementById("address").value,
+    document.getElementById("contactPerson").value,
+    document.getElementById("contactNumber").value,
+    document.getElementById("purpose").value,
+    document.getElementById("summary").value,
+    document.getElementById("documents").value,
+    document.getElementById("nextFollow").value,
+    document.getElementById("status").value||"Pending",
+    document.getElementById("remarks").value
+  ];
+  google.script.run.withSuccessHandler(function(res){
+    alert(res ? "Visit submitted successfully!" : "Submission failed!");
+    document.getElementById("visitForm").reset();
+    btn.disabled=false;
+  }).submitVisitData(row);
+}
+</script>
+</body>
+</html>
